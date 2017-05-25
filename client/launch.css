@@ -1,0 +1,19 @@
+.terminal {
+	margin: 0 auto;
+    max-width: 50em;
+	background: #222;
+	border-radius: 3px;
+	padding: 1em;
+}
+
+.terminal pre {
+	white-space: pre-wrap;
+}
+
+.stdout {
+	color: #ddd;
+}
+
+.stderr {
+	color: #ff7b7b;
+}
