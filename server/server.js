@@ -32,28 +32,21 @@ router.get('/~launch/*', ctx => {
   const address = ctx.path.substring(9)
   const sibyl = spawn('sibyl', ['launch', address])
   sibyl.stdout.on('data', data => {
-    sse.write(`event: stdout\ndata: ${data.toString().replace('\n','\\n')}\n\n`)
+    const str = data.toString()
+    const goto_ = str.match(/^GOTO (.+)\n$/)
+    if (goto_) {
+      sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+    } else {
+      sse.write(`event: stdout\ndata: ${str.replace('\n','\\n')}\n\n`)
+    }
   })
   sibyl.stderr.on('data', data => {
     sse.write(`event: stderr\ndata: ${data.toString().replace('\n','\\n')}\n\n`)
   })
   sibyl.on('exit', code => {
-    if (code == 0) {
-      sse.write(`event: goto\ndata: /${address}!html\n\n`)
-    } else {
-      sse.write(`event: end\ndata: ${code}\n\n`)
-    }
+    sse.write(`event: end\ndata: ${code}\n\n`)
     ctx.res.end()
   })
-})
-
-// Document page
-router.get(/\/.+?!html/, async ctx => {
-  const address = ctx.path.match(/\/(.+?)!html/)[1]
-  // This encodes the address into a safe name
-  // it relies on this encoding being the same as in the `sibyl` Bash script
-  const name = address.replace(/:/g,'-').replace(/\//g,'-')
-  await send(ctx, `folders/${name}/stencila.html`)
 })
 
 // Launch page
