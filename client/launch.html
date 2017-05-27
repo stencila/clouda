@@ -28,8 +28,8 @@
   <body>
     <script>
       var address = window.location.pathname.substring(1);
-
-      var eventSource = new EventSource('/~launch/' + address);
+      var query = window.location.search
+      var eventSource = new EventSource('/~launch/' + address + query);
 
       var terminal = document.createElement('div');
       terminal.className = 'terminal';
