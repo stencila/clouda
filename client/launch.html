@@ -3,10 +3,68 @@
   <head>
     <meta charset=utf-8>
     <title>Sibyl</title>
-    <script src="/~client/launch.js"></script>
-    <link rel="stylesheet" type="text/css" href="/~client/launch.css"></link>
+    <style type="text/css">
+      .terminal {
+        margin: 0 auto;
+        max-width: 50em;
+        background: #222;
+        border-radius: 3px;
+        padding: 1em;
+      }
+
+      .terminal pre {
+        white-space: pre-wrap;
+      }
+
+      .stdout {
+        color: #ddd;
+      }
+
+      .stderr {
+        color: #ff7b7b;
+      }
+    </style>
   </head>
   <body>
-    <script>launch()</script>
+    <script>
+      var address = window.location.pathname.substring(1);
+
+      var eventSource = new EventSource('/~launch/' + address);
+
+      var terminal = document.createElement('div');
+      terminal.className = 'terminal';
+      document.getElementsByTagName('body')[0].appendChild(terminal);
+
+      eventSource.addEventListener('stdout', function(event) {
+        var pre = document.createElement('pre');
+        pre.className = 'stdout';
+        pre.innerHTML = event.data;
+        terminal.appendChild(pre);
+      }, false);
+
+      eventSource.addEventListener('stderr', function(event) {
+        var pre = document.createElement('pre');
+        pre.className = 'stderr';
+        pre.innerHTML = event.data;
+        terminal.appendChild(pre);
+      }, false);
+
+      eventSource.addEventListener('goto', function(event) {
+        window.location = 'http://' + window.location.hostname + ':' + event.data + '/~';
+      }, false);
+
+      eventSource.addEventListener('end', function(event) {
+        var div = document.createElement('div');
+        div.className = 'end';
+        document.getElementsByTagName('body')[0].appendChild(div);
+
+        eventSource.close()
+      }, false);
+
+      eventSource.onerror = function(event) {
+        console.error(event);
+        eventSource.close();
+      };
+    </script>
   </body>
 </html>
