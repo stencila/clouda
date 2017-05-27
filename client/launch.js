@@ -22,7 +22,7 @@ function launch () {
   }, false);
 
   eventSource.addEventListener('goto', function(event) {
-    window.location = 'http://' + window.location.hostname + ':' + event.data;
+    window.location = 'http://' + window.location.hostname + ':' + event.data + '/~';
   }, false);
 
   eventSource.addEventListener('end', function(event) {
