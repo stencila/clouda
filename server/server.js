@@ -33,16 +33,19 @@ router.get('/~launch/*', ctx => {
   const mock = (typeof ctx.request.query.mock !== 'undefined') ? '--mock' : ''
   const sibyl = spawn('sibyl', ['launch', address, mock])
   sibyl.stdout.on('data', data => {
-    const str = data.toString()
-    const goto_ = str.match(/^GOTO (.+)\n$/)
-    if (goto_) {
-      sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
-    } else {
-      sse.write(`event: stdout\ndata: ${str.replace('\n','\\n')}\n\n`)
+    for (line of data.toString().split('\n')) {
+      const goto_ = line.match(/^GOTO (.+)\n$/)
+      if (goto_) {
+        sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+      } else {
+        sse.write(`event: stdout\ndata: ${line}\n\n`)
+      }
     }
   })
   sibyl.stderr.on('data', data => {
-    sse.write(`event: stderr\ndata: ${data.toString().replace('\n','\\n')}\n\n`)
+    for (line of data.toString().split('\n')) {
+      sse.write(`event: stderr\ndata: ${line}\n\n`)
+    }
   })
   sibyl.on('exit', code => {
     sse.write(`event: end\ndata: ${code}\n\n`)
