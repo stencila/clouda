@@ -1,7 +1,7 @@
 const Koa = require('koa')
 const KoaRouter = require('koa-router')
 const send = require('koa-send')
-const PassThrough = require('stream').PassThrough;
+const PassThrough = require('stream').PassThrough
 const path = require('path')
 const spawn = require('child_process').spawn
 
@@ -14,9 +14,9 @@ router.get('/~client/*', async ctx => {
 })
 
 // Launch stream.
-// 
-// Runs the `sibyl` Bash script and creates a server send event stream of it's output which is displayed 
-// by `client.js`. 
+//
+// Runs the `sibyl` Bash script and creates a server send event stream of it's output which is displayed
+// by `client.js`.
 // See https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
 router.get('/~launch/*', ctx => {
   // Use a PassThrough stream as the response body
@@ -33,7 +33,7 @@ router.get('/~launch/*', ctx => {
   const mock = (typeof ctx.request.query.mock !== 'undefined') ? '--mock' : ''
   const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
   sibyl.stdout.on('data', data => {
-    for (line of data.toString().split('\n')) {
+    for (let line of data.toString().split('\n')) {
       const goto_ = line.match(/^GOTO (.+)\n$/)
       if (goto_) {
         sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
@@ -43,7 +43,7 @@ router.get('/~launch/*', ctx => {
     }
   })
   sibyl.stderr.on('data', data => {
-    for (line of data.toString().split('\n')) {
+    for (let line of data.toString().split('\n')) {
       sse.write(`event: stderr\ndata: ${line}\n\n`)
     }
   })
@@ -66,4 +66,4 @@ router.get('/', async ctx => {
 app.use(router.routes())
 
 app.listen(3000)
-console.log('Listening on port http://127.0.0.1:3000');
+console.log('Listening on port http://127.0.0.1:3000')
