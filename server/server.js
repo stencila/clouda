@@ -31,7 +31,7 @@ router.get('/~launch/*', ctx => {
   // and errors as SSE events until it exits
   const address = ctx.path.substring(9)
   const mock = (typeof ctx.request.query.mock !== 'undefined') ? '--mock' : ''
-  const sibyl = spawn('sibyl', ['launch', address, mock])
+  const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
   sibyl.stdout.on('data', data => {
     for (line of data.toString().split('\n')) {
       const goto_ = line.match(/^GOTO (.+)\n$/)
