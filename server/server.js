@@ -34,11 +34,13 @@ router.get('/~launch/*', ctx => {
   const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
   sibyl.stdout.on('data', data => {
     for (let line of data.toString().split('\n')) {
-      const goto_ = line.match(/^GOTO (.+)\n$/)
-      if (goto_) {
-        sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
-      } else {
-        sse.write(`event: stdout\ndata: ${line}\n\n`)
+      if (line.length){
+        const goto_ = line.match(/^GOTO (.+)$/)
+        if (goto_) {
+          sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+        } else {
+          sse.write(`event: stdout\ndata: ${line}\n\n`)
+        }
       }
     }
   })
