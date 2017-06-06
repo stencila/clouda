@@ -68,4 +68,4 @@ router.get('/', async ctx => {
 app.use(router.routes())
 
 app.listen(3000)
-console.log('Listening on port http://127.0.0.1:3000')
+console.log('Listening at http://127.0.0.1:3000')
