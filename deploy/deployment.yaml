@@ -1,0 +1,25 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: sibyl-deployment
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: sibyl
+    spec:
+      containers:
+        - name: sibyl-server
+          image: stencila/sibyl-server
+          env:
+            - name: DOCKER_HOST
+              value: tcp://127.0.0.1:2375
+          ports:
+            - containerPort: 3000
+        - name: sibyl-docker
+          image: docker:dind
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 2375
