@@ -5,4 +5,3 @@ cp ../../package.json .
 cp -R ../../client/ .
 cp -R ../../server/ .
 docker build . --tag stencila/sibyl-server
-docker push stencila/sibyl-server
