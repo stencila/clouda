@@ -4,5 +4,5 @@ metadata:
   name: sibyl-ingress
 spec:
   backend:
-    serviceName: sibyl-service
+    serviceName: sibyl-server
     servicePort: 80
