@@ -12,7 +12,14 @@ const stream = require('stream')
 
 const PORT = 3000
 
-const TOKEN_SECRET = 'TODO: set a secret'
+// JWT token secret should be set as an environment variable
+// Should we enforce that (including during development) and never have this default here?
+const TOKEN_SECRET = ''
+
+// Used to dertmine the mechanism for redirecting to container session
+// Is there a better way to do this?
+const BEHIND_NGINX = false
+
 
 const app = new Koa()
 const log = pino({ level: 'debug', name: 'sibyl' }, process.stdout)
@@ -48,13 +55,19 @@ router.get('/~launch/*', ctx => {
 // Connect to the launched container
 router.get('/~session/*', async ctx => {
   // Get the token
-  const token = ctx.path.substring(8)
+  const token = ctx.path.substring(10)
   jwt.verify(token, TOKEN_SECRET, (error, payload) => {
     if (error) {
-      ctx.body = 'Auth error'
+      ctx.status = 403
     } else {
-      ctx.header = 'X-Accel_Redirect'  //TODO
-      console.log(payload)
+      const url = payload.url
+      if (BEHIND_NGINX) {
+        ctx.status = 200
+        ctx.set('X-Accel_Redirect', url)
+      } else {
+        ctx.status = 301
+        ctx.set('Location', url)
+      }
     }
   })
 })
@@ -103,10 +116,12 @@ function sibylToStream (sibyl, sink, ctx) {
     if (closed) return
     for (let line of data.toString().split('\n')) {
       if (line.length) {
-        const goto_ = line.match(/^GOTO (.+)$/)
-        if (goto_) {
+        const match = line.match(/^GOTO (.+)$/)
+        if (match) {
+          const url = match[1]
+          const token = jwt.sign({ url: url }, TOKEN_SECRET, { expiresIn: '1h' })
           log.debug('SSE: sending stdout goto')
-          sink.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+          sink.write(`event: goto\ndata: ${token}\n\n`)
         } else {
           log.debug('SSE: sending stdout data')
           sink.write(`event: stdout\ndata: ${line}\n\n`)
