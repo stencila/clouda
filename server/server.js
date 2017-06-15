@@ -1,5 +1,6 @@
 const eos = require('end-of-stream')
 const http = require('http')
+const jwt = require('jsonwebtoken')
 const Koa = require('koa')
 const KoaRouter = require('koa-router')
 const logHttp = require('log-http')
@@ -10,6 +11,8 @@ const spawn = require('child_process').spawn
 const stream = require('stream')
 
 const PORT = 3000
+
+const TOKEN_SECRET = 'TODO: set a secret'
 
 const app = new Koa()
 const log = pino({ level: 'debug', name: 'sibyl' }, process.stdout)
@@ -39,9 +42,23 @@ router.get('/~launch/*', ctx => {
   const address = ctx.path.substring(9)
   const mock = (typeof ctx.request.query.mock !== 'undefined') ? '--mock' : ''
   const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
-
   sibylToStream(sibyl, sse, ctx)
 })
+
+// Connect to the launched container
+router.get('/~session/*', async ctx => {
+  // Get the token
+  const token = ctx.path.substring(8)
+  jwt.verify(token, TOKEN_SECRET, (error, payload) => {
+    if (error) {
+      ctx.body = 'Auth error'
+    } else {
+      ctx.header = 'X-Accel_Redirect'  //TODO
+      console.log(payload)
+    }
+  })
+})
+
 
 // Launch page
 router.get(/\/.+/, async ctx => {
