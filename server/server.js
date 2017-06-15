@@ -1,9 +1,12 @@
 const Koa = require('koa')
 const KoaRouter = require('koa-router')
 const send = require('koa-send')
+const jwt = require('jsonwebtoken')
 const PassThrough = require('stream').PassThrough
 const path = require('path')
 const spawn = require('child_process').spawn
+
+const TOKEN_SECRET = 'TODO: set a secret'
 
 const app = new Koa()
 const router = new KoaRouter()
@@ -37,7 +40,16 @@ router.get('/~launch/*', ctx => {
       if (line.length) {
         const goto_ = line.match(/^GOTO (.+)$/)
         if (goto_) {
-          sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+          // The internal IP that the client needs to go to
+          // to connect with their container
+          const ip = goto_[1]
+          // Put the IP in a token
+          const token = jwt.sign({
+            ip: ip
+          }, TOKEN_SECRET, { expiresIn: '1h' });
+          // Tell client to GOTO session URL
+          const url = `/~session/${token}`
+          sse.write(`event: goto\ndata: ${url}\n\n`)
         } else {
           sse.write(`event: stdout\ndata: ${line}\n\n`)
         }
@@ -54,6 +66,21 @@ router.get('/~launch/*', ctx => {
     ctx.res.end()
   })
 })
+
+// Connect to the launched container
+router.get('/~session/*', async ctx => {
+  // Get the token
+  const token = ctx.path.substring(8)
+  jwt.verify(token, TOKEN_SECRET, (error, payload) => {
+    if (error) {
+      ctx.body = 'Auth error'
+    } else {
+      ctx.header = 'X-Accel_Redirect'  //TODO
+      console.log(payload)
+    }
+  })
+})
+
 
 // Launch page
 router.get(/\/.+/, async ctx => {
