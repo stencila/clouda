@@ -15,6 +15,14 @@ spec:
         app: sibyl
     spec:
       containers:
+
+        # Nginx web server
+        - name: sibyl-nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+
+        # Sibyl app server
         - name: sibyl-server
           image: stencila/sibyl-server
           # Use  `IfNotPresent` so that Kubernetes does not pull each time and
