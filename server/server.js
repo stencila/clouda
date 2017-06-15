@@ -1,12 +1,13 @@
+const eos = require('end-of-stream')
 const http = require('http')
 const Koa = require('koa')
 const KoaRouter = require('koa-router')
 const logHttp = require('log-http')
 const send = require('koa-send')
-const PassThrough = require('stream').PassThrough
 const path = require('path')
 const pino = require('pino')
 const spawn = require('child_process').spawn
+const stream = require('stream')
 
 const PORT = 3000
 
@@ -27,7 +28,7 @@ router.get('/~client/*', async ctx => {
 router.get('/~launch/*', ctx => {
   // Use a PassThrough stream as the response body
   // to write Server Sent Events
-  const sse = new PassThrough()
+  const sse = new stream.PassThrough()
   ctx.type = 'text/event-stream'
   ctx.body = sse
   // Remove timeout on the request
@@ -39,33 +40,7 @@ router.get('/~launch/*', ctx => {
   const mock = (typeof ctx.request.query.mock !== 'undefined') ? '--mock' : ''
   const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
 
-  sibyl.stdout.on('data', data => {
-    for (let line of data.toString().split('\n')) {
-      if (line.length) {
-        const goto_ = line.match(/^GOTO (.+)$/)
-        if (goto_) {
-          log.debug('SSE: sending stdout goto')
-          sse.write(`event: goto\ndata: ${goto_[1]}\n\n`)
-        } else {
-          log.debug('SSE: sending stdout data')
-          sse.write(`event: stdout\ndata: ${line}\n\n`)
-        }
-      }
-    }
-  })
-
-  sibyl.stderr.on('data', data => {
-    for (let line of data.toString().split('\n')) {
-      log.debug('SSE: sending stderr data')
-      sse.write(`event: stderr\ndata: ${line}\n\n`)
-    }
-  })
-
-  sibyl.on('exit', code => {
-    log.debug('SSE: sending end event')
-    sse.write(`event: end\ndata: ${code}\n\n`)
-    ctx.res.end()
-  })
+  sibylToStream(sibyl, sse, ctx)
 })
 
 // Launch page
@@ -86,5 +61,54 @@ stats.on('data', function (level, data) {
   log[level](data)
 })
 server.listen(PORT, function () {
-  console.log('Listening at http://127.0.0.1:' + PORT)
+  log.info('Listening at http://127.0.0.1:' + PORT)
 })
+
+// Safely forward the sibyl script into a stream of messages
+// Connects the sibyl child process, a write stream and a koa context
+function sibylToStream (sibyl, sink, ctx) {
+  var closed = false
+
+  sibyl.stdout.on('data', onStdout)
+  sibyl.stderr.on('data', onStderr)
+  sibyl.on('exit', onExit)
+
+  eos(ctx.res, function (err) {
+    if (err) log.error(err)
+    log.debug('closing SSE stream')
+    sibyl.stdout.removeListener('data', onStdout)
+    sibyl.stderr.removeListener('data', onStderr)
+    sibyl.removeListener('exit', onExit)
+    closed = true
+  })
+
+  function onStdout (data) {
+    if (closed) return
+    for (let line of data.toString().split('\n')) {
+      if (line.length) {
+        const goto_ = line.match(/^GOTO (.+)$/)
+        if (goto_) {
+          log.debug('SSE: sending stdout goto')
+          sink.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+        } else {
+          log.debug('SSE: sending stdout data')
+          sink.write(`event: stdout\ndata: ${line}\n\n`)
+        }
+      }
+    }
+  }
+
+  function onStderr (data) {
+    if (closed) return
+    for (let line of data.toString().split('\n')) {
+      log.debug('SSE: sending stderr data')
+      sink.write(`event: stderr\ndata: ${line}\n\n`)
+    }
+  }
+
+  function onExit (data) {
+    if (closed) return
+    log.debug('SSE: sending end event')
+    sink.write(`event: end\ndata: ${data}\n\n`)
+  }
+}
