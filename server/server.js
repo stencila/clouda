@@ -5,6 +5,7 @@ const Koa = require('koa')
 const KoaRouter = require('koa-router')
 const logHttp = require('log-http')
 const send = require('koa-send')
+const jwt = require('jsonwebtoken')
 const path = require('path')
 const pino = require('pino')
 const spawn = require('child_process').spawn
@@ -20,6 +21,8 @@ const TOKEN_SECRET = 'THIS SECRET SHOULD BE SET AS A ENV VAR'
 // Is there a better way to do this? Determine automatically?
 const BEHIND_NGINX = false
 
+
+const TOKEN_SECRET = 'TODO: set a secret'
 
 const app = new Koa()
 const log = pino({ level: 'debug', name: 'sibyl' }, process.stdout)
