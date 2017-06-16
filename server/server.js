@@ -1,5 +1,6 @@
 const eos = require('end-of-stream')
 const http = require('http')
+const jwt = require('jsonwebtoken')
 const Koa = require('koa')
 const KoaRouter = require('koa-router')
 const logHttp = require('log-http')
@@ -10,6 +11,14 @@ const spawn = require('child_process').spawn
 const stream = require('stream')
 
 const PORT = 3000
+
+// JWT token secret should be set as an environment variable
+// Should we enforce that (including during development) and never have this default here?
+const TOKEN_SECRET = 'THIS SECRET SHOULD BE SET AS A ENV VAR'
+
+// Used to dertmine the mechanism for redirecting to container session
+// Is there a better way to do this? Determine automatically?
+const BEHIND_NGINX = false
 
 const app = new Koa()
 const log = pino({ level: 'debug', name: 'sibyl' }, process.stdout)
@@ -30,6 +39,10 @@ router.get('/~launch/*', ctx => {
   // to write Server Sent Events
   const sse = new stream.PassThrough()
   ctx.type = 'text/event-stream'
+  // Prevent nginx from buffering the stream
+  if (BEHIND_NGINX) {
+    ctx.set('X-Accel-Buffering', 'no')
+  }
   ctx.body = sse
   // Remove timeout on the request
   ctx.req.setTimeout(0)
@@ -39,9 +52,29 @@ router.get('/~launch/*', ctx => {
   const address = ctx.path.substring(9)
   const mock = (typeof ctx.request.query.mock !== 'undefined') ? '--mock' : ''
   const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
-
   sibylToStream(sibyl, sse, ctx)
 })
+
+// Connect to the launched container
+router.get('/~session/*', async ctx => {
+  // Get the token
+  const token = ctx.path.substring(10)
+  jwt.verify(token, TOKEN_SECRET, (error, payload) => {
+    if (error) {
+      ctx.status = 403
+    } else {
+      const url = payload.url
+      if (BEHIND_NGINX) {
+        ctx.status = 200
+        ctx.set('X-Accel-Redirect', `/internal-session/${url}`)
+      } else {
+        ctx.status = 301
+        ctx.set('Location', url)
+      }
+    }
+  })
+})
+
 
 // Launch page
 router.get(/\/.+/, async ctx => {
@@ -86,10 +119,12 @@ function sibylToStream (sibyl, sink, ctx) {
     if (closed) return
     for (let line of data.toString().split('\n')) {
       if (line.length) {
-        const goto_ = line.match(/^GOTO (.+)$/)
-        if (goto_) {
+        const match = line.match(/^GOTO (.+)$/)
+        if (match) {
+          const url = match[1]
+          const token = jwt.sign({ url: url }, TOKEN_SECRET, { expiresIn: '1h' })
           log.debug('SSE: sending stdout goto')
-          sink.write(`event: goto\ndata: ${goto_[1]}\n\n`)
+          sink.write(`event: goto\ndata: ${token}\n\n`)
         } else {
           log.debug('SSE: sending stdout data')
           sink.write(`event: stdout\ndata: ${line}\n\n`)
