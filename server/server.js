@@ -14,10 +14,10 @@ const PORT = 3000
 
 // JWT token secret should be set as an environment variable
 // Should we enforce that (including during development) and never have this default here?
-const TOKEN_SECRET = ''
+const TOKEN_SECRET = 'THIS SECRET SHOULD BE SET AS A ENV VAR'
 
 // Used to dertmine the mechanism for redirecting to container session
-// Is there a better way to do this?
+// Is there a better way to do this? Determine automatically?
 const BEHIND_NGINX = false
 
 
@@ -40,6 +40,10 @@ router.get('/~launch/*', ctx => {
   // to write Server Sent Events
   const sse = new stream.PassThrough()
   ctx.type = 'text/event-stream'
+  // Prevent nginx from buffering the stream
+  if (BEHIND_NGINX) {
+    ctx.set('X-Accel-Buffering', 'no')
+  }
   ctx.body = sse
   // Remove timeout on the request
   ctx.req.setTimeout(0)
@@ -63,7 +67,7 @@ router.get('/~session/*', async ctx => {
       const url = payload.url
       if (BEHIND_NGINX) {
         ctx.status = 200
-        ctx.set('X-Accel_Redirect', url)
+        ctx.set('X-Accel-Redirect', `/internal-session/${url}`)
       } else {
         ctx.status = 301
         ctx.set('Location', url)
