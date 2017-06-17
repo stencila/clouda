@@ -10,7 +10,6 @@ const url = require('url')
 const errors = require('./errors')
 
 const env = {
-  BEHIND_NGINX: false, // Used to determine the mechanism for redirecting to container session
   PORT: 3000,          // Port for the server to listen on
   TOKEN_SECRET: String // JWT token secret should be set as an environment variable
 }
@@ -34,7 +33,7 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
   res.setHeader('content-type', 'text/event-stream')
 
   // Prevent nginx from buffering the stream
-  if (ctx.env.BEHIND_NGINX) res.setHeader('X-Accel-Buffering', 'no')
+  if (req.headers['x-nginx']) res.setHeader('X-Accel-Buffering', 'no')
 
   // Launch `sibyl` Bash script and send output
   // and errors as SSE events until it exits
@@ -52,7 +51,7 @@ app.route('GET', '/~session/:token', function (req, res, ctx) {
     if (err) return errors.ESESSIONINVALID(req, res, ctx, err)
 
     const url = payload.url
-    if (ctx.env.BEHIND_NGINX) {
+    if (req.headers['x-nginx']) {
       res.statusCode = 200
       res.setHeader('X-Accel-Redirect', `/internal-session/${url}`)
     } else {
