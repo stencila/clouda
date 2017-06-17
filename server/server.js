@@ -123,10 +123,9 @@ function sibylToStream (sibyl, req, res, ctx) {
   }
 }
 
-
 // Proxy/redirect requests to a container session
 function proxyToSession (req, res, ctx) {
-  const match = req.url.match(/\/~session\/([^\/]+)((\/)(.*))?/)
+  const match = req.url.match(/\/~session\/([^/]+)((\/)(.*))?/)
   const token = match[1]
   const slash = match[3]
   const path = match[4]
