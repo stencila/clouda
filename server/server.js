@@ -44,24 +44,11 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
   sibylToStream(sibyl, req, res, ctx)
 })
 
-// Connect to the launched container
-
-app.route('GET', '/~session/:token', function (req, res, ctx) {
-  jwt.verify(ctx.params.token, ctx.env.TOKEN_SECRET, function (err, payload) {
-    if (err) return errors.ESESSIONINVALID(req, res, ctx, err)
-
-    const url = payload.url
-    if (req.headers['x-nginx']) {
-      res.statusCode = 200
-      res.setHeader('X-Accel-Redirect', `/internal-session/${url}`)
-    } else {
-      res.statusCode = 301
-      res.setHeader('Location', url)
-    }
-
-    res.end()
-  })
-})
+// Container session
+app.route('GET', '/~session/*', proxyToSession)
+app.route('POST', '/~session/*', proxyToSession)
+app.route('PUT', '/~session/*', proxyToSession)
+app.route('DELETE', '/~session/*', proxyToSession)
 
 // Launch page
 app.route('GET', '/*', function (req, res, ctx) {
@@ -110,7 +97,7 @@ function sibylToStream (sibyl, req, res, ctx) {
         const match = line.match(/^GOTO (.+)$/)
         if (match) {
           const url = match[1]
-          const token = jwt.sign({ url: url }, ctx.env.TOKEN_SECRET, { expiresIn: '1h' })
+          const token = jwt.sign({ url: url }, ctx.env.TOKEN_SECRET, { expiresIn: '12h' })
           ctx.log.debug('SSE: sending stdout goto')
           res.write(`event: goto\ndata: ${token}\n\n`)
         } else {
@@ -134,4 +121,38 @@ function sibylToStream (sibyl, req, res, ctx) {
     ctx.log.debug('SSE: sending end event')
     res.write(`event: end\ndata: ${data}\n\n`)
   }
+}
+
+
+// Proxy/redirect requests to a container session
+function proxyToSession (req, res, ctx) {
+  const match = req.url.match(/\/~session\/([^\/]+)((\/)(.*))?/)
+  const token = match[1]
+  const slash = match[3]
+  const path = match[4]
+
+  // Redirect to trailing slash URL so that relative paths in session
+  // requests work as expected
+  if (!slash) {
+    res.statusCode = 301
+    res.setHeader('Location', `/~session/${token}/`)
+    return res.end()
+  }
+
+  jwt.verify(token, ctx.env.TOKEN_SECRET, function (err, payload) {
+    if (err) return errors.ESESSIONINVALID(req, res, ctx, err)
+
+    const url = payload.url
+    if (req.headers['x-nginx']) {
+      // Proxy to session URL using Nginx
+      res.statusCode = 200
+      res.setHeader('X-Accel-Redirect', `/proxy-to-session/${req.method}/${url}/${path}`)
+    } else {
+      // Redirect to session URL
+      res.statusCode = 308
+      res.setHeader('Location', `${url}/${path}`)
+    }
+
+    res.end()
+  })
 }
