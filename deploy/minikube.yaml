@@ -86,3 +86,26 @@ spec:
     - protocol: TCP
       port: 2375
       targetPort: 2375
+
+---
+
+# Expose the Docker registry outside. This is to allow kubectl to pull
+# images built by sibyl
+# Need to run:
+# kubectl port-forward $(kubectl get po -n | grep sibyl-registry | awk '{print $1;}') 5000:5000
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: sibyl-registry
+  labels:
+    app: sibyl
+spec:
+  type: NodePort
+  selector:
+    app: sibyl
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+
