@@ -50,21 +50,21 @@ app.route('POST', '/~session/*', proxyToSession)
 app.route('PUT', '/~session/*', proxyToSession)
 app.route('DELETE', '/~session/*', proxyToSession)
 
-// Launch page
+// All other non-tilded paths get "rewritten" to
+// container sessions
 app.route('GET', '/*', function (req, res, ctx) {
-  const source = send(req, 'client/launch.html')
-  pump(source, res, function (err) {
-    if (err) errors.EPIPE(req, res, ctx, err)
-  })
+  if (req.url === '/' || req.url.match(/^\/[a-z]+:\/\/.+/)) {
+    const source = send(req, 'client/index.html')
+    pump(source, res, function (err) {
+      if (err) errors.EPIPE(req, res, ctx, err)
+    })
+  } else {
+    rewriteToSession(req, res, ctx)
+  }
 })
-
-// Home page
-app.route('GET', '/', function (req, res, ctx) {
-  const source = send(req, 'client/index.html')
-  pump(source, res, function (err) {
-    if (err) errors.EPIPE(req, res, ctx, err)
-  })
-})
+app.route('POST', '/*', rewriteToSession)
+app.route('PUT', '/*', rewriteToSession)
+app.route('DELETE', '/*', rewriteToSession)
 
 // Handle 404 routes
 app.route('default', errors.EURLNOTFOUND)
@@ -154,4 +154,24 @@ function proxyToSession (req, res, ctx) {
 
     res.end()
   })
+}
+
+// Rewrite the URL to point to the session in the Referer header
+//
+// This allows us to deal with absolute paths in requests made from
+// HTML & JavaScript hosted within the container. Although this seems
+// a bit hacky, a previous approach required an equal amount of hackyness
+// (and much URL ugliness) within the container hosted HTML/JS and servers.
+function rewriteToSession (req, res, ctx) {
+  let referer = req.headers['referer']
+  if (referer) {
+    let match = referer.match(/\/~session\/([^/]+)/)
+    if (match) {
+      let token = match[1]
+      console.log(token)
+      req.url = `/~session/${token}${req.url}`
+      return proxyToSession(req, res, ctx)
+    }
+  }
+  errors.EURLNOTFOUND(req, res, ctx)
 }
