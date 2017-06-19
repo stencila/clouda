@@ -1,3 +1,4 @@
+const cookie = require('cookie')
 const eos = require('end-of-stream')
 const jwt = require('jsonwebtoken')
 const merry = require('merry')
@@ -73,7 +74,7 @@ app.route('default', errors.EURLNOTFOUND)
 app.listen()
 
 // Safely forward the sibyl script into a stream of messages
-// Connects the sibyl child process, a write stream and a koa context
+// Connects the sibyl child process, a write stream and a context
 function sibylToStream (sibyl, req, res, ctx) {
   var closed = false
 
@@ -146,6 +147,10 @@ function proxyToSession (req, res, ctx) {
       // Proxy to session URL using Nginx
       res.statusCode = 200
       res.setHeader('X-Accel-Redirect', `/proxy-to-session/${req.method}/${url}/${path}`)
+      // Set a cookie so that subsequent requests to absolute paths can
+      // be rewritten to the session
+      let cookies = cookie.parse(req.headers.cookie || '')
+      if (!cookies.session) res.setHeader('Set-Cookie', cookie.serialize('session', token))
     } else {
       // Redirect to session URL
       res.statusCode = 308
@@ -156,22 +161,31 @@ function proxyToSession (req, res, ctx) {
   })
 }
 
-// Rewrite the URL to point to the session in the Referer header
+// Rewrite the URL to point to the session obtained from the
+// `Referer` header or from the `session` cookie
+//
+// Need to use a cookie because `Referer` is not always set or
+// is set but not as a URL including the session token (e.g for fonts)
+// Should we just use the cookie and forget about Referer?
 //
 // This allows us to deal with absolute paths in requests made from
 // HTML & JavaScript hosted within the container. Although this seems
 // a bit hacky, a previous approach required an equal amount of hackyness
 // (and much URL ugliness) within the container hosted HTML/JS and servers.
 function rewriteToSession (req, res, ctx) {
-  let referer = req.headers['referer']
+  let token
+  let referer = req.headers.referer
   if (referer) {
     let match = referer.match(/\/~session\/([^/]+)/)
-    if (match) {
-      let token = match[1]
-      console.log(token)
-      req.url = `/~session/${token}${req.url}`
-      return proxyToSession(req, res, ctx)
-    }
+    if (match) token = match[1]
+  }
+  if (!token) {
+    let cookies = cookie.parse(req.headers.cookie || '')
+    if (cookies.session) token = cookies.session
+  }
+  if (token) {
+    req.url = `/~session/${token}${req.url}`
+    return proxyToSession(req, res, ctx)
   }
   errors.EURLNOTFOUND(req, res, ctx)
 }
