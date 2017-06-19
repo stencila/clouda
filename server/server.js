@@ -55,7 +55,17 @@ app.route('DELETE', '/~session/*', proxyToSession)
 // container sessions
 app.route('GET', '/*', function (req, res, ctx) {
   if (req.url === '/' || req.url.match(/^\/[a-z]+:\/\/.+/)) {
-    const source = send(req, 'client/index.html')
+    const source = send(req, 'dist/index.html')
+    pump(source, res, function (err) {
+      if (err) errors.EPIPE(req, res, ctx, err)
+    })
+  } else if (req.url === '/bundle.js') {
+    const source = send(req, 'dist/bundle.js')
+    pump(source, res, function (err) {
+      if (err) errors.EPIPE(req, res, ctx, err)
+    })
+  } else if (req.url === '/bundle.css') {
+    const source = send(req, 'dist/bundle.css')
     pump(source, res, function (err) {
       if (err) errors.EPIPE(req, res, ctx, err)
     })
