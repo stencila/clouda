@@ -11,14 +11,22 @@ spec:
       labels:
         app: sibyl
     spec:
-      containers:
 
+      volumes:
+        - name: sibyl-configmap-volume
+          configMap:
+            name: nginxconfigmap
+
+      containers:
+          
         # Nginx web server
         - name: sibyl-nginx
           image: nginx
           ports:
             - containerPort: 80
-        # TODO: configure with deploy/nginx.conf
+          volumeMounts:
+            - mountPath: /etc/ngnix/conf.d
+              name: sibyl-configmap-volume
 
         # Sibyl app server
         - name: sibyl-server
