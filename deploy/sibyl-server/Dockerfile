@@ -1,12 +1,20 @@
 # Container for running Sibyl's Node.js server
 
 FROM node:6
+
+ENV DEBIAN_FRONTEND noninteractive
 ENV NPM_CONFIG_LOGLEVEL warn
 
-# Install docker
+# Install system packages. 
+# `init-system-helpers` etc are needed for docker
 RUN apt-get update \
  && apt-get install -y \
-   init-system-helpers iptables libapparmor1
+ 		net-tools jq  \
+ 		init-system-helpers iptables libapparmor1 \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/
+
+# Install docker
 RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_17.03.0~ce-0~debian-jessie_amd64.deb \
  && dpkg -i docker.deb \
  && rm docker.deb
@@ -22,8 +30,7 @@ RUN mkdir /usr/app
 WORKDIR /usr/app
 
 # Just copy files needed for `npm install` so that it
-# is not re-run when an unrelated file (e.g. `sibyl.sh`)
-# is changed
+# is not re-run when an unrelated file (e.g. `sibyl.sh`) is changed
 COPY package.json .
 RUN npm install
 
@@ -33,7 +40,5 @@ RUN npm run build
 
 # Expose server.js port
 EXPOSE 3000
-# Expose dat port
-EXPOSE 3282
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "serve"]
