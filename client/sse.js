@@ -6,7 +6,10 @@ module.exports = sse
 function sse (state, emitter) {
   state.sse = {
     log: [],
-    url: ''
+    url: '',
+    goto: 0,
+    stderr: 0,
+    stdout: 0
   }
 
   emitter.on('DOMContentLoaded', function () {

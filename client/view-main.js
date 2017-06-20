@@ -1,29 +1,11 @@
 var html = require('choo/html')
-var assert = require('assert')
 var css = require('sheetify')
 
 var events = require('./events')
 
 css`
-  .terminal {
-    margin: 0 auto;
-    max-width: 40em;
-    background: #222;
-    border-radius: 3px;
-    padding: 1em;
-  }
-
-  .terminal pre {
-    white-space: pre-wrap;
-  }
-
-  .stdout {
-    color: #ddd;
-  }
-
-  .stderr {
-    color: #ff7b7b;
-  }
+  .terminal-white { color: #ddd }
+  .terminal-red { color: #ff7b7b }
 `
 
 module.exports = mainView
@@ -55,18 +37,19 @@ function mainView (state, emit) {
     <body class="sans-serif">
       <main class="flex flex-column mw7 pa3 center">
         <section>
-          <h1 class="f-subheadline ma0 pv3">
-            Sibyl
+          <h1 class="f1 f-subheadline-ns ma0 pv3">
+            Sibyl by Stencila
           </h1>
-          <h2 class="f2 ma0 pt4">
+          <h2 class="f3 f2-ns ma0 pt3 pt4-ns">
             Run interactive notebooks in the browser
           </h2>
         </section>
-        <section class="flex justify-between content-stretch">
+        <section class="flex flex-column justify-between content-stretch">
           <section class="w-100">
             ${form}
           </section>
-          <section>
+          <section class="cf content-stretch mt3 mt5-ns">
+            ${createSummary(state, emit)}
             ${createTerminal(state, emit)}
           </section>
         </section>
@@ -77,13 +60,6 @@ function mainView (state, emit) {
   function onsubmit (e) {
     e.preventDefault()
     var url = e.target.querySelector('#address').value
-
-    var split = url.split('://')
-    assert.equal(split.length, 2)
-
-//     var protocol = split[0]
-//     var target = split[1]
-
     emit(events.LAUNCH_NOTEBOOK, url)
   }
 
@@ -92,19 +68,40 @@ function mainView (state, emit) {
   }
 }
 
+function createSummary (state, emit) {
+  if (!state.sse.log.length) return html`<div class="fl"></div>`
+
+  return html`
+    <div class="fl w-100 w-40-ns">
+      <h2 class="f4 mv2 mt0-ns mb3-ns">
+        Progress
+      </h2>
+      <div class="f4 lh-copy">Stdout: ${state.sse.stdout}</div>
+      <div class="f4 lh-copy">Stderr: ${state.sse.stderr}</div>
+      <div class="f4 lh-copy">Goto: ${state.sse.goto}</div>
+    </div>
+  `
+}
+
 function createTerminal (state, emit) {
   if (!state.sse.log.length) return html`<div></div>`
 
   return html`
-    <div class="terminal">
-      ${state.sse.log.map(function (event) {
-        var className
-        if (event.type === 'stdout') className = 'stdout'
-        else if (event.type === 'stderr') className = 'stderr'
-        else if (event.type === 'goto') className = 'goto'
-        else if (event.type === 'end') className = 'end'
-        return html`<pre class=${className}>${event.data}</pre>`
-      })}
+    <div class="fl w-100 w-60-ns mt3 mt0-ns">
+      <h2 class="f4 mv2 mt0-ns mb3-ns">
+        Console
+      </h2>
+      <div class="bg-black pa3 f6 pre">
+        ${state.sse.log.map(function (event) {
+          var className
+          if (event.type === 'stdout') className = 'terminal-white'
+          else if (event.type === 'stderr') className = 'terminal-red'
+          return html`
+            <pre class="${className} ma0 lh-copy">
+              ${event.data}
+            </pre>`
+        })}
+      </div>
     </div>
   `
 }
