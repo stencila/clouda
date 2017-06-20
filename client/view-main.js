@@ -38,7 +38,7 @@ function mainView (state, emit) {
       <main class="flex flex-column mw7 pa3 center">
         <section>
           <h1 class="f1 f-subheadline-ns ma0 pv3">
-            Sibyl by Stencila
+            Sibyl
           </h1>
           <h2 class="f3 f2-ns ma0 pt3 pt4-ns">
             Run interactive notebooks in the browser
@@ -49,8 +49,8 @@ function mainView (state, emit) {
             ${form}
           </section>
           <section class="cf content-stretch mt3 mt5-ns">
-            ${createSummary(state, emit)}
             ${createTerminal(state, emit)}
+            ${createSummary(state, emit)}
           </section>
         </section>
       </main>
@@ -72,7 +72,7 @@ function createSummary (state, emit) {
   if (!state.sse.log.length) return html`<div class="fl"></div>`
 
   return html`
-    <div class="fl w-100 w-40-ns">
+    <div class="fl w-100 w-40-ns pl3-ns">
       <h2 class="f4 mv2 mt0-ns mb3-ns">
         Progress
       </h2>
