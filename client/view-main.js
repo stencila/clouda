@@ -72,13 +72,25 @@ function createSummary (state, emit) {
   if (!state.sse.log.length) return html`<div class="fl"></div>`
 
   return html`
-    <div class="fl w-100 w-40-ns pl3-ns">
+    <div class="fl w-100 w-40-ns pl5-ns">
       <h2 class="f4 mv2 mt0-ns mb3-ns">
         Progress
       </h2>
-      <div class="f4 lh-copy">Stdout: ${state.sse.stdout}</div>
-      <div class="f4 lh-copy">Stderr: ${state.sse.stderr}</div>
-      <div class="f4 lh-copy">Goto: ${state.sse.goto}</div>
+      <div class="flex">
+        <p class="mv0">
+          <b class="f4 f3-ns">${state.sse.stdout}</b>
+          <p class="f5 mt2">Lines</p>
+        </p>
+        <p class="mv0 ml4">
+          <b class="f4 f3-ns">${state.sse.stderr}</b>
+          <p class="f5 mt2">Errors</p>
+        </p>
+      </div>
+      <div class="mt2">
+        <button class="mh0 bg-white f5 b--black pa2 link pointer">
+          Open notebook
+        </button>
+      </div>
     </div>
   `
 }
