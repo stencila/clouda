@@ -1,0 +1,83 @@
+# A Google Container Engine (GKE) deployment
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: sibyl-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sibyl
+    spec:
+      containers:
+
+        # Nginx web server
+        - name: sibyl-nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+        # TODO: configure with deploy/nginx.conf
+
+        # Sibyl app server
+        - name: sibyl-server
+          image: stencila/sibyl-server
+          env:
+            - name: DOCKER_HOST
+              value: tcp://127.0.0.1:2375
+            - name: SIBYL_CLUSTER
+              value: 'true'
+            - name: SIBYL_REGISTRY
+              value: gcr.io
+          ports:
+            - containerPort: 3000
+        # TODO: configure with a TOKEN_SECRET
+
+        # Use Docker-in-Docker (dind) to build Docker images
+        # An alternative is to use the Docker daemeon that is actually present on
+        # the node. But doing so has security implications. This isn't perfect
+        # but it seems to be better.
+        # See the discussion at https://github.com/kubernetes/kubernetes/issues/1806
+        - name: sibyl-docker
+          image: docker:dind
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 2375
+
+---
+
+# Expose the Sibyl server
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: sibyl-service
+spec:
+  type: NodePort
+  selector:
+    app: sibyl
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+
+---
+
+# Provide a cluster ingress
+
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: sibyl-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: sibyl
+spec:
+  rules:
+    - http:
+        paths:
+        - path: /*
+          backend:
+            serviceName: sibyl-service
+            servicePort: 80
