@@ -23,22 +23,62 @@ spec:
         # Sibyl app server
         - name: sibyl-server
           image: stencila/sibyl-server
+          imagePullPolicy: Always
           env:
             - name: DOCKER_HOST
               value: tcp://127.0.0.1:2375
             - name: SIBYL_CLUSTER
               value: 'true'
-            - name: SIBYL_REGISTRY
+            - name: SIBYL_FROM
+              value: stencila/alpha
+            - name: SIBYL_REGISTRY # TODO: configure gcr.io auth to be able to push
               value: gcr.io
+            - name: TOKEN_SECRET # TODO: configure with a TOKEN_SECRET
+              value: donttell
           ports:
             - containerPort: 3000
-        # TODO: configure with a TOKEN_SECRET
 
-        # Use Docker-in-Docker (dind) to build Docker images
-        # An alternative is to use the Docker daemeon that is actually present on
-        # the node. But doing so has security implications. This isn't perfect
-        # but it seems to be better.
-        # See the discussion at https://github.com/kubernetes/kubernetes/issues/1806
+        # Docker-in-Docker (dind) to build bundle images
+        - name: sibyl-docker
+          image: docker:dind
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 2375
+
+---
+
+# Rebuild images every day at midnight UTC
+# 
+# This would ideally be a CronJob but they are currently
+# unsupported on GKE (except in "alpha" culsters). 
+# See https://github.com/kubernetes/kubernetes.github.io/issues/2325#issuecomment-275763247
+# 
+# So we use a Deployment with a `cron` job running inside
+# our `sibyl-builder` container
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: sibyl-builder
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sibyl-builder
+    spec:
+      containers:
+
+        # Sibyl base image builder
+        - name: sibyl-builder
+          image: stencila/sibyl-builder
+          imagePullPolicy: Always
+          env:
+            - name: DOCKER_HOST
+              value: tcp://127.0.0.1:2375
+
+        # Docker-in-Docker (dind) to build base images
         - name: sibyl-docker
           image: docker:dind
           securityContext:
