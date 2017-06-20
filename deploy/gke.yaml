@@ -48,6 +48,21 @@ spec:
 
 ---
 
+# Auto-scale the Sibyl deployment
+
+kind: HorizontalPodAutoscaler
+apiVersion: autoscaling/v1
+metadata:
+  name: sibyl-autoscaler
+spec:
+  scaleTargetRef:
+    kind: Deployment
+    name: sibyl-deployment
+  minReplicas: 1
+  maxReplicas: 10
+
+---
+
 # Rebuild images every day at midnight UTC
 # 
 # This would ideally be a CronJob but they are currently
