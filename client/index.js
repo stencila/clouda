@@ -7,6 +7,7 @@ css('tachyons')
 
 const app = choo()
 if (process.env.NODE_ENV !== 'production') {
+  app.use(require('choo-expose')())
   app.use(require('choo-log')())
 }
 

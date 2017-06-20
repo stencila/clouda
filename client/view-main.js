@@ -4,8 +4,6 @@ var css = require('sheetify')
 
 var events = require('./events')
 
-css('tachyons')
-
 css`
   .terminal {
     margin: 0 auto;
@@ -69,7 +67,7 @@ function mainView (state, emit) {
             ${form}
           </section>
           <section>
-
+            ${createTerminal(state, emit)}
           </section>
         </section>
       </main>
@@ -83,13 +81,30 @@ function mainView (state, emit) {
     var split = url.split('://')
     assert.equal(split.length, 2)
 
-    var protocol = split[0]
-    var target = split[1]
+//     var protocol = split[0]
+//     var target = split[1]
 
-    console.log(protocol, target)
+    emit(events.LAUNCH_NOTEBOOK, url)
   }
 
   function tryExample () {
     emit(events.SET_EXAMPLE_NOTEBOOK)
   }
+}
+
+function createTerminal (state, emit) {
+  if (!state.sse.log.length) return html`<div></div>`
+
+  return html`
+    <div class="terminal">
+      ${state.sse.log.map(function (event) {
+        var className
+        if (event.type === 'stdout') className = 'stdout'
+        else if (event.type === 'stderr') className = 'stderr'
+        else if (event.type === 'goto') className = 'goto'
+        else if (event.type === 'end') className = 'end'
+        return html`<pre class=${className}>${event.data}</pre>`
+      })}
+    </div>
+  `
 }

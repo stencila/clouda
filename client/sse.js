@@ -1,48 +1,44 @@
+var assert = require('assert')
+var events = require('./events')
+
 module.exports = sse
 
 function sse (state, emitter) {
-  const address = window.location.pathname.substring(1)
-  const query = window.location.search
-  const eventSource = new window.EventSource('/~launch/' + address + query)
-
-  const terminal = document.createElement('div')
-  terminal.className = 'terminal'
-  document.getElementsByTagName('body')[0].appendChild(terminal)
-
-  eventSource.addEventListener('stdout', function (event) {
-    const pre = document.createElement('pre')
-    pre.className = 'stdout'
-    pre.innerHTML = event.data
-    terminal.appendChild(pre)
-  }, false)
-
-  eventSource.addEventListener('stderr', function (event) {
-    const pre = document.createElement('pre')
-    pre.className = 'stderr'
-    pre.innerHTML = event.data
-    terminal.appendChild(pre)
-  }, false)
-
-  eventSource.addEventListener('goto', function (event) {
-    // Get the token
-    const token = event.data
-
-    const div = document.createElement('div')
-    div.className = 'goto'
-    div.innerHTML = '<a href="/~session/' + token + '/" target="_blank">Click here to open container</a>'
-    document.getElementsByTagName('body')[0].appendChild(div)
-  }, false)
-
-  eventSource.addEventListener('end', function (event) {
-    const div = document.createElement('div')
-    div.className = 'end'
-    document.getElementsByTagName('body')[0].appendChild(div)
-
-    eventSource.close()
-  }, false)
-
-  eventSource.onerror = function (event) {
-    console.error(event)
-    eventSource.close()
+  state.sse = {
+    log: [],
+    url: ''
   }
+
+  emitter.on('DOMContentLoaded', function () {
+    emitter.on(events.LAUNCH_NOTEBOOK, function (address) {
+      assert.equal(typeof address, 'string', events.LAUNCH_NOTEBOOK + ': address should be type string')
+
+      console.log('addr', address)
+      const eventSource = new window.EventSource('/~launch/' + address)
+
+      eventSource.addEventListener('stdout', function (event) {
+        state.sse.log.push({ type: 'stdout', data: event.data })
+        emitter.emit('render')
+      }, false)
+
+      eventSource.addEventListener('stderr', function (event) {
+        state.sse.log.push({ type: 'stderr', data: event.data })
+        emitter.emit('render')
+      }, false)
+
+      eventSource.addEventListener('goto', function (event) {
+        state.sse.url = event.data
+        emitter.emit('render')
+      }, false)
+
+      eventSource.addEventListener('end', function (event) {
+        eventSource.close()
+      }, false)
+
+      eventSource.onerror = function (event) {
+        emitter.emit('log:error', event)
+        eventSource.close()
+      }
+    })
+  })
 }
