@@ -1,22 +1,22 @@
 # Container for running Sibyl's Node.js server
 
-FROM node:alpine
+FROM node:6
+ENV NPM_CONFIG_LOGLEVEL warn
 
-# Install system packages
-RUN apk add --no-cache bash curl docker jq
-
-# Install dat
-# A `global` install fails (permissions error) so we install in `/bin` and
-# create a symlink
-RUN cd /bin \
- && apk add --no-cache --virtual build-dependencies python g++ make \
- && npm install dat \
- && apk del build-dependencies \
- && ln -s /bin/node_modules/.bin/dat dat
+# Install docker
+RUN apt-get update \
+ && apt-get install -y \
+   init-system-helpers iptables libapparmor1
+RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_17.03.0~ce-0~debian-jessie_amd64.deb \
+ && dpkg -i docker.deb \
+ && rm docker.deb
 
 # Install kubctrl
 RUN curl -L -o /bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.6.4/bin/linux/amd64/kubectl \
  && chmod +x /bin/kubectl
+
+# Install dat
+RUN npm install dat --global
 
 RUN mkdir /usr/app 
 WORKDIR /usr/app
@@ -25,10 +25,15 @@ WORKDIR /usr/app
 # is not re-run when an unrelated file (e.g. `sibyl.sh`)
 # is changed
 COPY package.json .
-RUN npm install && npm run build
+RUN npm install
 
-# Now copy over everything
+# Now copy over everything and do build
 COPY . .
+RUN npm run build
 
+# Expose server.js port
 EXPOSE 3000
+# Expose dat port
+EXPOSE 3282
+
 CMD ["npm", "start"]
