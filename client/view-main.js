@@ -1,14 +1,12 @@
-const html = require('choo/html')
-const css = require('sheetify')
+var html = require('choo/html')
+var assert = require('assert')
+var css = require('sheetify')
+
+var events = require('./events')
 
 css('tachyons')
 
 css`
-  .content {
-    margin: 0 auto;
-    max-width: 50em;
-  }
-
   .terminal {
     margin: 0 auto;
     max-width: 40em;
@@ -33,27 +31,65 @@ css`
 module.exports = mainView
 
 function mainView (state, emit) {
-  return html`
-  <body>
-    <div class="content">
-    <p>Enter an address e.g. github://octocat/spoon-knife:</p>
-    <form onsubmit=${onsubmit}>
-      <input id='address'>
+  const formState = state.form
+  const form = html`
+    <form class="pt5 flex flex-column align-right" onsubmit=${onsubmit}>
+      <label class="f4 b" for="address">
+        Address
+      </label>
+      <input type="text"
+        class="mt2 pa2 f5 b--black" id="address"
+        value=${formState.address}
+        placeholder="For example github://octocat/spoon-knife">
+      <span class="mt2 lh-copy">
+        Run a repository containing a notebook. Is this your first time?
+        <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
+          Try an example
+        </button>
+      </span>
+      <input type="submit"
+        class="mw4 mt4 mh0 bg-white f5 b--black pa2 link pointer"
+        value="Run notebook">
     </form>
-    <p>Or have a look at these:</p>
-    <ul>
-      <li>
-        <a href="/github://octocat/spoon-knife" data-no-routing>
-          github://octocat/spoon-knife
-        </a>
-      </li>
-    </ul>
-    </div>
-  </body>
   `
 
-  function onsubmit () {
-    window.location = '/' + document.getElementById('address').value
-    return false
+  return html`
+    <body class="sans-serif">
+      <main class="flex flex-column mw7 pa3 center">
+        <section>
+          <h1 class="f-subheadline ma0 pv3">
+            Sibyl
+          </h1>
+          <h2 class="f2 ma0 pt4">
+            Run interactive notebooks in the browser
+          </h2>
+        </section>
+        <section class="flex justify-between content-stretch">
+          <section class="w-100">
+            ${form}
+          </section>
+          <section>
+
+          </section>
+        </section>
+      </main>
+    </body>
+  `
+
+  function onsubmit (e) {
+    e.preventDefault()
+    var url = e.target.querySelector('#address').value
+
+    var split = url.split('://')
+    assert.equal(split.length, 2)
+
+    var protocol = split[0]
+    var target = split[1]
+
+    console.log(protocol, target)
+  }
+
+  function tryExample () {
+    emit(events.SET_EXAMPLE_NOTEBOOK)
   }
 }
