@@ -71,6 +71,22 @@ function mainView (state, emit) {
 function createSummary (state, emit) {
   if (!state.sse.log.length) return html`<div class="fl"></div>`
 
+  var button
+
+  if (state.sse.url) {
+    button = html`
+      <a href=${state.sse.url} class="mh0 bg-white f5 b--black pa2 link pointer">
+        Open notebook
+      </a>
+    `
+  } else {
+    button = html`
+      <a class="mh0 bg-light-gray f5 ba b--light-gray pa2 link">
+        Open notebook
+      </a>
+    `
+  }
+
   return html`
     <div class="fl w-100 w-40-ns pl5-ns">
       <h2 class="f4 mv2 mt0-ns mb3-ns">
@@ -87,9 +103,7 @@ function createSummary (state, emit) {
         </p>
       </div>
       <div class="mt2">
-        <button class="mh0 bg-white f5 b--black pa2 link pointer">
-          Open notebook
-        </button>
+        ${button}
       </div>
     </div>
   `
