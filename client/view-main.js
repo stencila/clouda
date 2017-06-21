@@ -34,7 +34,7 @@ function mainView (state, emit) {
   `
 
   return html`
-    <body class="sans-serif">
+    <body class="sans-serif pb3">
       <main class="flex flex-column mw7 pa3 center">
         <section>
           <h1 class="f1 f-subheadline-ns ma0 pv3">
@@ -63,7 +63,8 @@ function mainView (state, emit) {
     emit(events.LAUNCH_NOTEBOOK, url)
   }
 
-  function tryExample () {
+  function tryExample (e) {
+    e.preventDefault()
     emit(events.SET_EXAMPLE_NOTEBOOK)
   }
 }
@@ -72,11 +73,10 @@ function createSummary (state, emit) {
   if (!state.sse.log.length) return html`<div class="fl"></div>`
 
   var button
-
   if (state.sse.url) {
     button = html`
       <a href=${state.sse.url}
-        class="mh0 bg-white f5 b--black pa2 link pointer"
+        class="mh0 pa2 f5 ba bw1 bg-green white b--green link pointer"
         data-no-routing
         target="_blank">
         Open notebook
@@ -84,14 +84,14 @@ function createSummary (state, emit) {
     `
   } else {
     button = html`
-      <a class="mh0 bg-light-gray f5 ba b--light-gray pa2 link black">
+      <a class="mh0 bg-gray f5 ba bw1 b--gray pa2 link white">
         Open notebook
       </a>
     `
   }
 
   return html`
-    <div class="fl w-100 w-40-ns pl5-ns">
+    <div class="fl w-100 w-40-ns pl5-ns mt4 mt0-ns">
       <h2 class="f4 mv2 mt0-ns mb3-ns">
         Progress
       </h2>
@@ -105,7 +105,7 @@ function createSummary (state, emit) {
           <p class="f5 mt2">Errors</p>
         </p>
       </div>
-      <div class="mt2">
+      <div class="mt2 mt3-ns">
         ${button}
       </div>
     </div>
