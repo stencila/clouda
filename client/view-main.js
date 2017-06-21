@@ -75,7 +75,10 @@ function createSummary (state, emit) {
 
   if (state.sse.url) {
     button = html`
-      <a href=${state.sse.url} class="mh0 bg-white f5 b--black pa2 link pointer">
+      <a href=${state.sse.url}
+        class="mh0 bg-white f5 b--black pa2 link pointer"
+        data-no-routing
+        target="_blank">
         Open notebook
       </a>
     `
