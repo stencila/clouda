@@ -16,6 +16,10 @@ spec:
         - name: sibyl-nginx-configmap
           configMap:
             name: nginx
+        - name: sibyl-gcloud-key-file
+          secret:
+            secretName: gcloud-key-file
+            defaultMode: 256
 
       containers:
           
@@ -39,12 +43,18 @@ spec:
               value: 'true'
             - name: SIBYL_FROM
               value: stencila/alpha
-            - name: SIBYL_REGISTRY # TODO: configure gcr.io auth to be able to push
-              value: gcr.io
-            - name: TOKEN_SECRET # TODO: configure with a TOKEN_SECRET
-              value: donttell
+            - name: SIBYL_REGISTRY
+              value: gcr.io/stenci.la/api-project-72315317623
+            - name: TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: token-secret
+                  key: token-secret.txt
           ports:
             - containerPort: 3000
+          volumeMounts:
+            - name: sibyl-gcloud-key-file
+              mountPath: /mnt/secrets
 
         # Docker-in-Docker (dind) to build bundle images
         - name: sibyl-docker
