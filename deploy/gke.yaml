@@ -101,6 +101,13 @@ spec:
       labels:
         app: sibyl-builder
     spec:
+      volumes:
+
+        - name: sibyl-docker-password
+          secret:
+            secretName: docker-password
+            defaultMode: 256
+
       containers:
 
         # Sibyl base image builder
@@ -110,6 +117,16 @@ spec:
           env:
             - name: DOCKER_HOST
               value: tcp://127.0.0.1:2375
+            - name: DOCKER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: docker-password
+                  key: docker-password.txt
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: sibyl-docker-password
+              mountPath: /mnt/secrets
 
         # Docker-in-Docker (dind) to build base images
         - name: sibyl-docker

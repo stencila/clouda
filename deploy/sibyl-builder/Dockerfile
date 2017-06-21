@@ -10,8 +10,6 @@ WORKDIR /usr/app
 COPY run.sh .
 RUN chmod +x run.sh
 
-RUN echo '0 12 * * * sh run.sh' > crontab.tmp \
-    && crontab crontab.tmp \
-    && rm -rf crontab.tmp
+RUN echo "0 12 * * *     /usr/app/run.sh" > /etc/crontabs/root
 
 CMD ["crond", "-f", "-d", "0"]
