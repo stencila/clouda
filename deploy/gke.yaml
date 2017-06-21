@@ -13,9 +13,9 @@ spec:
     spec:
 
       volumes:
-        - name: sibyl-configmap-volume
+        - name: sibyl-nginx-configmap
           configMap:
-            name: nginxconfigmap
+            name: nginx
 
       containers:
           
@@ -25,9 +25,9 @@ spec:
           ports:
             - containerPort: 80
           volumeMounts:
-            - mountPath: /etc/ngnix/conf.d
-              name: sibyl-configmap-volume
-
+            - name: sibyl-nginx-configmap
+              mountPath: /etc/nginx/conf.d/
+              
         # Sibyl app server
         - name: sibyl-server
           image: stencila/sibyl-server
@@ -122,9 +122,9 @@ spec:
   selector:
     app: sibyl
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
-      targetPort: 3000
 
 ---
 
