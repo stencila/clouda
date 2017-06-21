@@ -11,8 +11,9 @@ const url = require('url')
 const errors = require('./errors')
 
 const env = {
-  PORT: 3000,          // Port for the server to listen on
-  TOKEN_SECRET: String // JWT token secret should be set as an environment variable
+  PORT: 3000,            // Port for the server to listen on
+  TOKEN_SECRET: String,  // JWT token secret should be set as an environment variable
+  BETA_TOKEN: 'platypus' // Random client token, required during the beta
 }
 
 const app = merry({ env: env })
@@ -36,11 +37,19 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
   // Prevent nginx from buffering the stream
   if (req.headers['x-nginx']) res.setHeader('X-Accel-Buffering', 'no')
 
+  // NOTE: For beta only
+  const uri = url.parse(req.url, true)
+  const token = uri.query.token
+  if (token !== ctx.env.BETA_TOKEN) {
+    return errors.EBETATOKENINVALID(req, res, ctx)
+  }
+
   // Launch `sibyl` Bash script and send output
   // and errors as SSE events until it exits
-  const uri = url.parse(req.url)
-  const address = uri.path.substring(9)
+  const address = uri.pathname.substring(9)
   const mock = uri.query && uri.query.mock ? '--mock' : ''
+
+  ctx.log.info('starting container for ' + address)
   const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
   sibylToStream(sibyl, req, res, ctx)
 })

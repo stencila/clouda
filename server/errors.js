@@ -16,3 +16,8 @@ exports.ESESSIONINVALID = function (req, res, ctx, err) {
   res.statusCode = 403
   ctx.send(403, { message: 'Invalid session ID' })
 }
+
+exports.EBETATOKENINVALID = function (req, res, ctx, err) {
+  ctx.log.warn('Invalid token', req.url)
+  res.write(`event: stderr\ndata: Invalid beta token\n\n`)
+}

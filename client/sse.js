@@ -1,4 +1,3 @@
-var assert = require('assert')
 var events = require('./events')
 
 module.exports = sse
@@ -12,9 +11,8 @@ function sse (state, emitter) {
   }
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on(events.LAUNCH_NOTEBOOK, function (address) {
-      assert.equal(typeof address, 'string', events.LAUNCH_NOTEBOOK + ': address should be type string')
-
+    emitter.on(events.LAUNCH_NOTEBOOK, function () {
+      const address = state.form.address + '?token=' + state.form.token
       const eventSource = new window.EventSource('/~launch/' + address)
 
       eventSource.addEventListener('stdout', function (event) {

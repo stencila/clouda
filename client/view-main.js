@@ -20,12 +20,24 @@ function mainView (state, emit) {
       <input type="text"
         class="mt2 pa2 f5 b--black" id="address"
         value=${formState.address}
+        onkeyup=${onkeyup}
         placeholder="For example github://octocat/spoon-knife">
       <span class="mt2 lh-copy">
         Run a repository containing a notebook. Is this your first time?
         <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
           Try an example
         </button>
+      </span>
+      <label class="f4 b mt3" for="token">
+        Beta token
+      </label>
+      <input type="text"
+        class="mt2 pa2 f5 b--black" id="token"
+        value=${formState.token}
+        onkeyup=${onkeyup}
+        placeholder="Token">
+      <span class="mt2 lh-copy">
+        To run a container during the beta, you need a beta token.
       </span>
       <input type="submit"
         class="mw4 mt4 mh0 bg-white f5 b--black pa2 link pointer"
@@ -57,10 +69,16 @@ function mainView (state, emit) {
     </body>
   `
 
+  function onkeyup (e) {
+    if (e.key === 'Enter') return onsubmit()
+    var id = e.target.id
+    var val = e.target.value
+    emit('form:update-' + id, val)
+  }
+
   function onsubmit (e) {
-    e.preventDefault()
-    var url = e.target.querySelector('#address').value
-    emit(events.LAUNCH_NOTEBOOK, url)
+    if (e) e.preventDefault()
+    emit(events.LAUNCH_NOTEBOOK)
   }
 
   function tryExample (e) {
