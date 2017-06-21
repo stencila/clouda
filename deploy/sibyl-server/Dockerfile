@@ -23,6 +23,10 @@ RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/poo
 RUN curl -L -o /bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.6.4/bin/linux/amd64/kubectl \
  && chmod +x /bin/kubectl
 
+# Install gcloud
+RUN curl -sSL https://sdk.cloud.google.com | bash
+ENV PATH $PATH:/root/google-cloud-sdk/bin
+
 # Install dat
 RUN npm install dat --global
 
@@ -41,4 +45,4 @@ RUN npm run build
 # Expose server.js port
 EXPOSE 3000
 
-CMD ["npm", "run", "serve"]
+CMD ["bash", "cmd.sh"]
