@@ -81,7 +81,7 @@ function createSummary (state, emit) {
     `
   } else {
     button = html`
-      <a class="mh0 bg-light-gray f5 ba b--light-gray pa2 link">
+      <a class="mh0 bg-light-gray f5 ba b--light-gray pa2 link black">
         Open notebook
       </a>
     `
