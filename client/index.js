@@ -21,7 +21,7 @@ app.use(function (state, emitter) {
 
   emitter.on('DOMContentLoaded', function () {
     emitter.on(events.SET_EXAMPLE_NOTEBOOK, function () {
-      state.form.address = 'github.com://octocat/spoon-knife'
+      state.form.address = 'github://octocat/spoon-knife'
       emitter.emit('render')
     })
   })
