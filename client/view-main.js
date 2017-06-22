@@ -17,10 +17,11 @@ function mainView (state, emit) {
       <label class="f4 b" for="address">
         Address
       </label>
-      <input type="text"
-        class="mt2 pa2 f5 b--black" id="address"
+      <input name="address"
+        type="text"
+        class="mt2 pa2 f5 b--black"
         value=${formState.address}
-        onkeyup=${onkeyup}
+        onchange=${onchange}
         placeholder="For example github://octocat/spoon-knife">
       <span class="mt2 lh-copy">
         Run a repository containing a notebook. Is this your first time?
@@ -31,10 +32,11 @@ function mainView (state, emit) {
       <label class="f4 b mt3" for="token">
         Beta token
       </label>
-      <input type="text"
-        class="mt2 pa2 f5 b--black" id="token"
+      <input name="token"
+        type="text"
+        class="mt2 pa2 f5 b--black"
         value=${formState.token}
-        onkeyup=${onkeyup}
+        onchange=${onchange}
         placeholder="Token">
       <span class="mt2 lh-copy">
         To run a container during the beta, you need a beta token.
@@ -69,7 +71,7 @@ function mainView (state, emit) {
     </body>
   `
 
-  function onkeyup (e) {
+  function onchange (e) {
     if (e.key === 'Enter') return onsubmit()
     var id = e.target.id
     var val = e.target.value
