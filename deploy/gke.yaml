@@ -15,7 +15,7 @@ spec:
       volumes:
         - name: sibyl-nginx-configmap
           configMap:
-            name: nginx
+            name: nginx-sse
         - name: sibyl-gcloud-key-file
           secret:
             secretName: gcloud-key-file
