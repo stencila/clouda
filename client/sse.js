@@ -28,7 +28,7 @@ function sse (state, emitter) {
       }, false)
 
       eventSource.addEventListener('goto', function (event) {
-        state.sse.url = '/~session/' + event.data + '/'
+        state.sse.url = '/~session/' + event.data + '/~'
         emitter.emit('render')
       }, false)
 
