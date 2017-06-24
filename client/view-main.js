@@ -47,7 +47,7 @@ function mainView (state, emit) {
       </span>
       <input type="submit"
         class="mw4 mt4 mh0 bg-white f5 b--black pa2 link pointer"
-        value="Build">
+        value="Open">
     </form>
   `
 
@@ -124,6 +124,11 @@ function createSummary (state, emit) {
       <h2 class="f4 mv2 mt0-ns mb3-ns">
         Progress
       </h2>
+      <div class="flex">
+        <p class="mv0">
+          <b class="f4 f3-ns">${state.sse.step}</b>
+        </p>
+      </div>
       <div class="flex">
         <p class="mv0">
           <b class="f4 f3-ns">${state.sse.stdout}</b>
