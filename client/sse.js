@@ -3,17 +3,20 @@ var events = require('./events')
 module.exports = sse
 
 function sse (state, emitter) {
-  state.sse = {
+  let empty = {
     log: [],
     url: '',
     stderr: 0,
     stdout: 0
   }
+  state.sse = empty
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on(events.LAUNCH_NOTEBOOK, function () {
+    emitter.on(events.LAUNCH_DOCUMENT, function () {
       const address = state.form.address + '?token=' + state.form.token
       const eventSource = new window.EventSource('/~launch/' + address)
+
+      state.sse = empty
 
       eventSource.addEventListener('stdout', function (event) {
         state.sse.log.push({ type: 'stdout', data: event.data })

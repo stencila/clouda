@@ -15,7 +15,7 @@ function mainView (state, emit) {
   const form = html`
     <form class="pt4 flex flex-column align-right" onsubmit=${onsubmit}>
       <label class="f4 b" for="address">
-        Address
+        Document address
       </label>
       <input name="address"
         type="text"
@@ -24,9 +24,9 @@ function mainView (state, emit) {
         onchange=${onchange}
         placeholder="For example github://octocat/spoon-knife">
       <span class="mt2 lh-copy">
-        Launch a repository containing a document. Is this your first time?
+        Enter the document address. Is this your first time? See the <a href="">docs</a> or 
         <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
-          Try an example
+          try an example
         </button>
       </span>
       <label class="f4 b mt3" for="token">
@@ -39,18 +39,19 @@ function mainView (state, emit) {
         onchange=${onchange}
         placeholder="Token">
       <span class="mt2 lh-copy">
-        To launch a document during the beta, you need a beta token.
+        During the beta, you need to provide a beta token.
       </span>
       <input type="submit"
         class="mw4 mt4 mh0 bg-white f5 b--black pa2 link pointer"
-        value="Run document">
+        value="Build">
     </form>
   `
 
   var header = html`
     <header class="w-100">
       <main class="flex flex-column mw7 pa3 pa4-ns center items-end">
-        <a class="black f4 ttu" href="http://sibyl.surge.sh/">Docs</a>
+        <a class="black f4" href="http://sibyl.surge.sh/">Docs</a>
+        <a class="black f4" href="https://community.stenci.la/">Help</a>
       </main>
     </header>
   `
@@ -59,11 +60,6 @@ function mainView (state, emit) {
     <body class="sans-serif pb3">
       ${header}
       <main class="flex flex-column mw7 pa3 center">
-        <section>
-          <h1 class="f1 f-subheadline-ns ma0 pv2">
-            Sibyl
-          </h1>
-        </section>
         <section class="flex flex-column justify-between content-stretch">
           <section class="w-100">
             ${form}
@@ -81,17 +77,20 @@ function mainView (state, emit) {
     if (e.key === 'Enter') return onsubmit()
     var id = e.target.id
     var val = e.target.value
-    emit('form:update-' + id, val)
+    // emit('form:update-' + id, val)
+
+    // FIX(NB): `form:update-` wasn't around at time of writing
+    state.form[e.target.name] = e.target.value
   }
 
   function onsubmit (e) {
     if (e) e.preventDefault()
-    emit(events.LAUNCH_NOTEBOOK)
+    emit(events.LAUNCH_DOCUMENT)
   }
 
   function tryExample (e) {
     e.preventDefault()
-    emit(events.SET_EXAMPLE_NOTEBOOK)
+    emit(events.SET_EXAMPLE_DOCUMENT)
   }
 }
 
