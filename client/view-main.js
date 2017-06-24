@@ -24,7 +24,11 @@ function mainView (state, emit) {
         onchange=${onchange}
         placeholder="For example github://octocat/spoon-knife">
       <span class="mt2 lh-copy">
-        Enter the document address. Is this your first time? See the <a href="">docs</a> or 
+        Enter the document address. Is this your first time? See the 
+        <a class="bn bg-white pointer pa0 ma0 link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">
+          docs
+        </a>
+        or 
         <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
           try an example
         </button>
