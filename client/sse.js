@@ -5,6 +5,7 @@ module.exports = sse
 function sse (state, emitter) {
   let empty = {
     log: [],
+    image: null,
     url: '',
     stderr: 0,
     stdout: 0
@@ -27,6 +28,11 @@ function sse (state, emitter) {
       eventSource.addEventListener('stderr', function (event) {
         state.sse.log.push({ type: 'stderr', data: event.data })
         state.sse.stderr += 1
+        emitter.emit('render')
+      }, false)
+
+      eventSource.addEventListener('image', function (event) {
+        state.sse.image = event.data
         emitter.emit('render')
       }, false)
 

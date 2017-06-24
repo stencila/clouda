@@ -72,6 +72,9 @@ function mainView (state, emit) {
             ${createSummary(state, emit)}
             ${createTerminal(state, emit)}
           </section>
+          <section>
+            ${createLinks(state, emit)}
+          </section>
         </section>
       </main>
     </body>
@@ -79,12 +82,9 @@ function mainView (state, emit) {
 
   function onchange (e) {
     if (e.key === 'Enter') return onsubmit()
-    var id = e.target.id
+    var name = e.target.name
     var val = e.target.value
-    // emit('form:update-' + id, val)
-
-    // FIX(NB): `form:update-` wasn't around at time of writing
-    state.form[e.target.name] = e.target.value
+    emit('form:update-' + name, val)
   }
 
   function onsubmit (e) {
@@ -165,4 +165,44 @@ function createTerminal (state, emit) {
       </details>
     </div>
   `
+}
+
+function createLinks (state, emit) {
+  if (state.sse.image) {
+    let url
+    if (state.embed.frozen) {
+      url = `${window.location.origin}/image://${state.sse.image}`
+    } else {
+      url = `${window.location.origin}/${state.form.address}`
+    }
+    let frozen = state.embed.frozen
+    return html`
+      <div class="fl w-100">
+        <h3>Embedding button</h3>
+        <p>Put a "Open in Stencila" button in your document</p>
+        <form>
+          <label>
+            <input type="radio" name="frozen" 
+              value="no"
+              ${!frozen ? 'checked' : ''}
+              onclick=${event => emit('embed:update-frozen', false)} 
+            />
+            Unfrozen link to latest version
+          </label>
+          <label>
+            <input type="radio" name="frozen" 
+              value="yes" 
+              ${frozen ? 'checked' : ''}
+              onclick=${event => emit('embed:update-frozen', true)} 
+            />
+            Frozen link to current version
+          </label>
+        </form>
+        <h4>Markdown</h4>
+        <pre><code class="b--gray">[Open in Stencila](${url})</code></pre>
+        <h4>HTML</h4>
+        <pre><code class="b--gray">&lt;a href="${url}"&gt;Open in Stencila&lt;/a&gt;</code></pre>
+      </div>
+    `
+  }
 }

@@ -36,5 +36,19 @@ app.use(function (state, emitter) {
   })
 })
 
+// Embedding buttons
+app.use(function (state, emitter) {
+  state.embed = {
+    frozen: false
+  }
+
+  emitter.on('DOMContentLoaded', function () {
+    emitter.on('embed:update-frozen', function (value) {
+      state.embed.frozen = value
+      emitter.emit('render')
+    })
+  })
+})
+
 app.route('/', require('./view-main'))
 app.mount('body')
