@@ -47,11 +47,20 @@ function mainView (state, emit) {
     </form>
   `
 
+  var header = html`
+    <header class="w-100">
+      <main class="flex flex-column mw7 pa3 pa4-ns center items-end">
+        <a class="black f4 ttu" href="http://sibyl.surge.sh/">Docs</a>
+      </main>
+    </header>
+  `
+
   return html`
     <body class="sans-serif pb3">
+      ${header}
       <main class="flex flex-column mw7 pa3 center">
         <section>
-          <h1 class="f1 f-subheadline-ns ma0 pv3">
+          <h1 class="f1 f-subheadline-ns ma0 pv2">
             Sibyl
           </h1>
         </section>
