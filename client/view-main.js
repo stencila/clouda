@@ -178,8 +178,8 @@ function createLinks (state, emit) {
     }
     let frozen = state.embed.frozen
     return html`
-      <div class="w-100 mt5">
-        <h3>Embed</h3>
+      <details class="w-100 mt4">
+        <summary>Embed</summary>
         <p>Put a "Open in Stencila" button in your document</p>
         <form>
           <label>
@@ -203,7 +203,7 @@ function createLinks (state, emit) {
         <pre class="pre">[Open in Stencila](${url})</pre>
         <h4>HTML</h4>
         <pre class="pre">&lt;a href="${url}"&gt;Open in Stencila&lt;/a&gt;</pre>
-      </div>
+      </details>
     `
   }
 }
