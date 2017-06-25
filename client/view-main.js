@@ -13,7 +13,7 @@ module.exports = mainView
 function mainView (state, emit) {
   const formState = state.form
   const form = html`
-    <form class="pt4 flex flex-column align-right" onsubmit=${onsubmit}>
+    <form class="flex flex-column align-right" onsubmit=${onsubmit}>
       <label class="f4 b" for="address">
         Document address
       </label>
@@ -46,7 +46,7 @@ function mainView (state, emit) {
         During the beta, you need to provide a beta token.
       </span>
       <input type="submit"
-        class="mw4 mt4 mh0 bg-white f5 b--black pa2 link pointer"
+        class="mw4 mt2 mh0 bg-white f5 b--black pa2 link pointer"
         value="Open">
     </form>
   `
@@ -111,10 +111,7 @@ function createProgress (state, emit) {
   function createProgress () {
     var percent = state.sse.url ? 100 : Math.min(state.sse.log.length / 20 * 100, 80)
     return html`
-      <div class="w-100 mt5">
-        <h2 class="f4 mv2 mt0-ns mb3-ns">
-          Progress
-        </h2>
+      <div class="w-100 mt4">
         <div class="bg-gray" style="width: ${percent}%; height: 2em">
         </div>
       </div>
