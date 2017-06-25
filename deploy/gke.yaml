@@ -77,7 +77,7 @@ spec:
     kind: Deployment
     name: sibyl-deployment
   minReplicas: 1
-  maxReplicas: 10
+  maxReplicas: 1
 
 ---
 
