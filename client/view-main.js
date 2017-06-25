@@ -4,7 +4,7 @@ var css = require('sheetify')
 var events = require('./events')
 
 css`
-  .terminal-white { color: #ddd }
+  .terminal-white { color: #333 }
   .terminal-red { color: #ff7b7b }
 `
 
@@ -68,11 +68,10 @@ function mainView (state, emit) {
           <section class="w-100">
             ${form}
           </section>
-          <section class="cf content-stretch mt3 mt5-ns">
-            ${createSummary(state, emit)}
-            ${createTerminal(state, emit)}
+          <section class="w-100">
+            ${createProgress(state, emit)}
           </section>
-          <section>
+          <section class="w-100">
             ${createLinks(state, emit)}
           </section>
         </section>
@@ -98,65 +97,37 @@ function mainView (state, emit) {
   }
 }
 
-function createSummary (state, emit) {
+function createProgress (state, emit) {
   if (!state.sse.log.length) return html`<div class="fl"></div>`
 
-  var button
-  if (state.sse.url) {
-    button = html`
-      <a href=${state.sse.url}
-        class="mh0 pa2 f5 ba bw1 bg-green white b--green link pointer"
-        data-no-routing
-        target="_blank">
-        Open document
-      </a>
-    `
-  } else {
-    button = html`
-      <a class="mh0 bg-gray f5 ba bw1 b--gray pa2 link white">
-        Open document
-      </a>
+  return html`
+    <div class="w-100">
+      ${createProgress()}
+      ${createLog()}
+      ${createButton()}
+    </div>
+  `
+
+  function createProgress () {
+    var percent = state.sse.url ? 100 : Math.min(state.sse.log.length / 20 * 100, 80)
+    return html`
+      <div class="w-100 mt5">
+        <h2 class="f4 mv2 mt0-ns mb3-ns">
+          Progress
+        </h2>
+        <div class="bg-gray" style="width: ${percent}%; height: 2em">
+        </div>
+      </div>
     `
   }
 
-  return html`
-    <div class="fl w-100 w-40-ns mt4 mt0-ns">
-      <h2 class="f4 mv2 mt0-ns mb3-ns">
-        Progress
-      </h2>
-      <div class="flex">
-        <p class="mv0">
-          <b class="f4 f3-ns">${state.sse.step}</b>
-        </p>
-      </div>
-      <div class="flex">
-        <p class="mv0">
-          <b class="f4 f3-ns">${state.sse.stdout}</b>
-          <p class="f5 mt2">Lines</p>
-        </p>
-        <p class="mv0 ml4">
-          <b class="f4 f3-ns">${state.sse.stderr}</b>
-          <p class="f5 mt2">Errors</p>
-        </p>
-      </div>
-      <div class="mt2 mt3-ns">
-        ${button}
-      </div>
-    </div>
-  `
-}
+  function createLog () {
+    if (!state.sse.log.length) return html`<div></div>`
 
-function createTerminal (state, emit) {
-  if (!state.sse.log.length) return html`<div></div>`
-
-  return html`
-    <div class="fl w-100 w-60-ns mt3 mt0-ns pl5-ns">
-      <h2 class="f4 mv2 mt0-ns mb3-ns">
-        Console
-      </h2>
-      <details>
-        <summary>Show logs</summary>
-        <div class="bg-black pa3 f6 pre">
+    return html`
+      <details class="w-100 gray">
+        <summary>Log</summary>
+        <div class="f6 pre">
           ${state.sse.log.map(function (event) {
             var className
             if (event.type === 'stdout') className = 'terminal-white'
@@ -168,8 +139,33 @@ function createTerminal (state, emit) {
           })}
         </div>
       </details>
-    </div>
-  `
+    `
+  }
+
+  function createButton () {
+    var button
+    if (state.sse.url) {
+      button = html`
+        <a href=${state.sse.url}
+          class="mh0 pa2 f5 ba bw1 bg-green b--green link white pointer"
+          data-no-routing
+          target="_blank">
+          View
+        </a>
+      `
+    } else {
+      button = html`
+        <a class="w-20 mh0 pa2 f5 ba bw1 bg-gray b--gray link white">
+          ${state.sse.step}ing
+        </a>
+      `
+    }
+    return html`
+      <div class="mt4">
+        ${button}
+      </div>
+    `
+  }
 }
 
 function createLinks (state, emit) {
@@ -182,8 +178,8 @@ function createLinks (state, emit) {
     }
     let frozen = state.embed.frozen
     return html`
-      <div class="fl w-100">
-        <h3>Embedding button</h3>
+      <div class="w-100 mt5">
+        <h3>Embed</h3>
         <p>Put a "Open in Stencila" button in your document</p>
         <form>
           <label>
@@ -204,9 +200,9 @@ function createLinks (state, emit) {
           </label>
         </form>
         <h4>Markdown</h4>
-        <pre><code class="b--gray">[Open in Stencila](${url})</code></pre>
+        <pre class="pre">[Open in Stencila](${url})</pre>
         <h4>HTML</h4>
-        <pre><code class="b--gray">&lt;a href="${url}"&gt;Open in Stencila&lt;/a&gt;</code></pre>
+        <pre class="pre">&lt;a href="${url}"&gt;Open in Stencila&lt;/a&gt;</pre>
       </div>
     `
   }
