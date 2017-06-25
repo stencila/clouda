@@ -3,17 +3,24 @@ var events = require('./events')
 module.exports = sse
 
 function sse (state, emitter) {
-  state.sse = {
-    log: [],
-    url: '',
-    stderr: 0,
-    stdout: 0
+  function empty () {
+    return {
+      log: [],
+      step: null,
+      image: null,
+      url: '',
+      stderr: 0,
+      stdout: 0
+    }
   }
+  state.sse = empty()
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on(events.LAUNCH_NOTEBOOK, function () {
+    emitter.on(events.LAUNCH_DOCUMENT, function () {
       const address = state.form.address + '?token=' + state.form.token
       const eventSource = new window.EventSource('/~launch/' + address)
+
+      state.sse = empty()
 
       eventSource.addEventListener('stdout', function (event) {
         state.sse.log.push({ type: 'stdout', data: event.data })
@@ -24,6 +31,16 @@ function sse (state, emitter) {
       eventSource.addEventListener('stderr', function (event) {
         state.sse.log.push({ type: 'stderr', data: event.data })
         state.sse.stderr += 1
+        emitter.emit('render')
+      }, false)
+
+      eventSource.addEventListener('step', function (event) {
+        state.sse.step = event.data
+        emitter.emit('render')
+      }, false)
+
+      eventSource.addEventListener('image', function (event) {
+        state.sse.image = event.data
         emitter.emit('render')
       }, false)
 

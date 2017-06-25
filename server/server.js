@@ -114,12 +114,21 @@ function sibylToStream (sibyl, req, res, ctx) {
     if (closed) return
     for (let line of data.toString().split('\n')) {
       if (line.length) {
-        const match = line.match(/^GOTO (.+)$/)
+        const match = line.match(/^(STEP|IMAGE|GOTO) (.+)$/)
         if (match) {
-          const url = match[1]
-          const token = jwt.sign({ url: url }, ctx.env.TOKEN_SECRET, { expiresIn: '12h' })
-          ctx.log.debug('SSE: sending stdout goto')
-          res.write(`event: goto\ndata: ${token}\n\n`)
+          let type = match[1]
+          let data = match[2]
+          if (type === 'STEP') {
+            ctx.log.debug('SSE: sending step')
+            res.write(`event: step\ndata: ${data}\n\n`)
+          } else if (type === 'IMAGE') {
+            ctx.log.debug('SSE: sending image')
+            res.write(`event: image\ndata: ${data}\n\n`)
+          } else if (type === 'GOTO') {
+            const token = jwt.sign({ url: data }, ctx.env.TOKEN_SECRET, { expiresIn: '12h' })
+            ctx.log.debug('SSE: sending stdout goto')
+            res.write(`event: goto\ndata: ${token}\n\n`)
+          }
         } else {
           ctx.log.debug('SSE: sending stdout data')
           res.write(`event: stdout\ndata: ${line}\n\n`)

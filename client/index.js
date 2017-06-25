@@ -21,8 +21,8 @@ app.use(function (state, emitter) {
   }
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on(events.SET_EXAMPLE_NOTEBOOK, function () {
-      state.form.address = 'github://octocat/spoon-knife'
+    emitter.on(events.SET_EXAMPLE_DOCUMENT, function () {
+      state.form.address = 'github://stencila/examples/diamonds'
       emitter.emit('render')
     })
 
@@ -32,6 +32,20 @@ app.use(function (state, emitter) {
 
     emitter.on('form:update-token', function (token) {
       state.form.token = token
+    })
+  })
+})
+
+// Embedding buttons
+app.use(function (state, emitter) {
+  state.embed = {
+    frozen: false
+  }
+
+  emitter.on('DOMContentLoaded', function () {
+    emitter.on('embed:update-frozen', function (value) {
+      state.embed.frozen = value
+      emitter.emit('render')
     })
   })
 })
