@@ -22,7 +22,7 @@ function mainView (state, emit) {
         class="mt2 pa2 f5 b--black"
         value=${formState.address}
         onchange=${onchange}
-        placeholder="For example github://octocat/spoon-knife">
+        placeholder="For example, github://stencila/examples/diamonds">
       <span class="mt2 lh-copy">
         Enter the document address. Is this your first time? See the 
         <a class="bn bg-white pointer pa0 ma0 link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">
