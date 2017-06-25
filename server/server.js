@@ -63,7 +63,8 @@ app.route('DELETE', '/~session/*', proxyToSession)
 // All other non-tilded paths get "rewritten" to
 // container sessions
 app.route('GET', '/*', function (req, res, ctx) {
-  if (req.url === '/' || req.url.match(/^\/[a-z]+:\/\/.+/)) {
+  let session = req.headers.referer && req.headers.referer.match(/\/~session\/([^/]+)/)
+  if (!session && (req.url === '/' || req.url.match(/^\/[a-z]+:\/\/.+/))) {
     const source = send(req, 'dist/index.html')
     pump(source, res, function (err) {
       if (err) errors.EPIPE(req, res, ctx, err)
