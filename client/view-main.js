@@ -24,11 +24,9 @@ function mainView (state, emit) {
         onchange=${onchange}
         placeholder="For example, github://stencila/examples/diamonds">
       <span class="mt2 lh-copy">
-        Enter the document address. Is this your first time? See the 
-        <a class="bn bg-white pointer pa0 ma0 link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">
-          docs
-        </a>
-        or 
+        Enter the document address. Is this your first time? See the
+        <a class="bn black pointer link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">docs</a>
+        or
         <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
           try an example
         </button>
@@ -53,10 +51,14 @@ function mainView (state, emit) {
 
   var header = html`
     <header class="w-100">
-      <main class="flex flex-column mw7 pa3 pa4-ns center items-end">
-        <a class="black f4" href="http://sibyl.surge.sh/">Docs</a>
-        <a class="black f4" href="https://community.stenci.la/">Help</a>
-      </main>
+      <section class="flex flex-column flex-row-ns mw7 pa3 center items-end justify-end">
+        <a class="black f4" href="http://sibyl.surge.sh/">
+          Docs
+        </a>
+        <a class="black f4 mt2 mt0-ns ml0 ml3-ns" href="https://community.stenci.la/">
+          Help
+        </a>
+      </section>
     </header>
   `
 
@@ -109,11 +111,14 @@ function createProgress (state, emit) {
   `
 
   function createProgress () {
-    var percent = state.sse.url ? 100 : Math.min(state.sse.log.length / 20 * 100, 80)
+    var percent = state.sse.percent
+
     return html`
       <div class="w-100 mt4">
-        <div class="bg-gray" style="width: ${percent}%; height: 2em">
-        </div>
+        <h3 class="f4 b mt3" for="token">
+          Progress
+        </h3>
+        <div class="bg-gray" style="width: ${percent}%; height: 2em"></div>
       </div>
     `
   }
@@ -166,41 +171,37 @@ function createProgress (state, emit) {
 }
 
 function createLinks (state, emit) {
-  if (state.sse.image) {
-    let url
-    if (state.embed.frozen) {
-      url = `${window.location.origin}/image://${state.sse.image}`
-    } else {
-      url = `${window.location.origin}/${state.form.address}`
-    }
-    let frozen = state.embed.frozen
-    return html`
-      <details class="w-100 mt4">
-        <summary>Embed</summary>
-        <p>Put a "Open in Stencila" button in your document</p>
-        <form>
-          <label>
-            <input type="radio" name="frozen" 
-              value="no"
-              ${!frozen ? 'checked' : ''}
-              onclick=${event => emit('embed:update-frozen', false)} 
-            />
-            Unfrozen link to latest version
-          </label>
-          <label>
-            <input type="radio" name="frozen" 
-              value="yes" 
-              ${frozen ? 'checked' : ''}
-              onclick=${event => emit('embed:update-frozen', true)} 
-            />
-            Frozen link to current version
-          </label>
-        </form>
-        <h4>Markdown</h4>
-        <pre class="pre">[Open in Stencila](${url})</pre>
-        <h4>HTML</h4>
-        <pre class="pre">&lt;a href="${url}"&gt;Open in Stencila&lt;/a&gt;</pre>
-      </details>
-    `
-  }
+  if (!state.sse.image) return
+
+  var frozen = state.embed.frozen
+  var url = state.embed.url
+
+  return html`
+    <details class="w-100 mt4">
+      <summary>Embed</summary>
+      <p>Put a "Open in Stencila" button in your document</p>
+      <form>
+        <label>
+          <input type="radio" name="frozen"
+            value="no"
+            ${!frozen ? 'checked' : ''}
+            onclick=${event => emit('embed:update-frozen', false)}
+          />
+          Unfrozen link to latest version
+        </label>
+        <label>
+          <input type="radio" name="frozen"
+            value="yes"
+            ${frozen ? 'checked' : ''}
+            onclick=${event => emit('embed:update-frozen', true)}
+          />
+          Frozen link to current version
+        </label>
+      </form>
+      <h4>Markdown</h4>
+      <pre class="pre">[Open in Stencila](${url})</pre>
+      <h4>HTML</h4>
+      <pre class="pre">&lt;a href="${url}"&gt;Open in Stencila&lt;/a&gt;</pre>
+    </details>
+  `
 }
