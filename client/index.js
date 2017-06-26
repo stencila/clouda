@@ -21,6 +21,11 @@ app.use(function (state, emitter) {
   }
 
   emitter.on('DOMContentLoaded', function () {
+    if (state.params.wildcard) {
+      state.form.address = state.params.wildcard
+      emitter.emit('render')
+    }
+
     emitter.on(events.SET_EXAMPLE_DOCUMENT, function () {
       state.form.address = 'github://stencila/examples/diamonds'
       emitter.emit('render')
@@ -59,4 +64,5 @@ app.use(function (state, emitter) {
 })
 
 app.route('/', require('./view-main'))
+app.route('/*', require('./view-main'))
 app.mount('body')
