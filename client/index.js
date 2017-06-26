@@ -39,15 +39,23 @@ app.use(function (state, emitter) {
 // Embedding buttons
 app.use(function (state, emitter) {
   state.embed = {
-    frozen: false
+    frozen: false,
+    url: createUrl(false)
   }
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on('embed:update-frozen', function (value) {
+    emitter.on(events.EMBED_UPDATE, function (value) {
       state.embed.frozen = value
+      state.embed.url = createUrl(value)
       emitter.emit('render')
     })
   })
+
+  function createUrl (frozen) {
+    return frozen
+      ? `${window.location.origin}/image://${state.sse.image}`
+      : `${window.location.origin}/${state.form.address}`
+  }
 })
 
 app.route('/', require('./view-main'))
