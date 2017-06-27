@@ -55,13 +55,11 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
 })
 
 // Container session
-app.route('GET', '/~session/*', proxyToSession)
-app.route('POST', '/~session/*', proxyToSession)
-app.route('PUT', '/~session/*', proxyToSession)
-app.route('DELETE', '/~session/*', proxyToSession)
+app.route([ 'GET', 'POST', 'PUT', 'DELETE' ], '/~session/*', proxyToSession)
 
 // All other non-tilded paths get "rewritten" to
 // container sessions
+app.route([ 'POST', 'PUT', 'DELETE' ], '/*', rewriteToSession)
 app.route('GET', '/*', function (req, res, ctx) {
   let session = req.headers.referer && req.headers.referer.match(/\/~session\/([^/]+)/)
   if (!session && (req.url === '/' || req.url.match(/^\/[a-z]+:\/\/.+/))) {
@@ -69,23 +67,24 @@ app.route('GET', '/*', function (req, res, ctx) {
     pump(source, res, function (err) {
       if (err) errors.EPIPE(req, res, ctx, err)
     })
-  } else if (req.url === '/bundle.js') {
-    const source = send(req, 'dist/bundle.js')
-    pump(source, res, function (err) {
-      if (err) errors.EPIPE(req, res, ctx, err)
-    })
-  } else if (req.url === '/bundle.css') {
-    const source = send(req, 'dist/bundle.css')
-    pump(source, res, function (err) {
-      if (err) errors.EPIPE(req, res, ctx, err)
-    })
   } else {
     rewriteToSession(req, res, ctx)
   }
 })
-app.route('POST', '/*', rewriteToSession)
-app.route('PUT', '/*', rewriteToSession)
-app.route('DELETE', '/*', rewriteToSession)
+
+app.route('GET', '/bundle.js', function (req, res, ctx) {
+  const source = send(req, 'dist/bundle.js')
+  pump(source, res, function (err) {
+    if (err) errors.EPIPE(req, res, ctx, err)
+  })
+})
+
+app.route('GET', '/bundle.css', function (req, res, ctx) {
+  const source = send(req, 'dist/bundle.css')
+  pump(source, res, function (err) {
+    if (err) errors.EPIPE(req, res, ctx, err)
+  })
+})
 
 // Handle 404 routes
 app.route('default', errors.EURLNOTFOUND)
