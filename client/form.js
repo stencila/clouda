@@ -1,14 +1,30 @@
+var validateFormdata = require('validate-formdata')
+var nanobounce = require('nanobounce')
+
 module.exports = form
 
 function form (state, emitter) {
   state.events.FORM_SET_EXAMPLE_DOCUMENT = 'form:set-example-document'
-  state.events.FORM_UDPATE_ADDRESS = 'form:update-address'
-  state.events.FORM_UPDATE_TOKEN = 'form:update-token'
+  state.events.FORM_UPDATE = 'form:update'
 
-  state.form = {
-    address: '',
-    token: ''
+  var validator = validateFormdata()
+  state.form = validator.state
+
+  // TODO: fix this in validat-formdata
+  state.form.values.address = ''
+  state.form.values.token = ''
+
+  if (process.env.NODE_ENV !== 'production') {
+    state.form.values.token = 'platypus'
   }
+
+  validator.add('address', function (data) {
+    // TODO: write validation code
+  })
+
+  validator.add('token', function (data) {
+    // TODO: write validation code
+  })
 
   emitter.on('DOMContentLoaded', function () {
     if (state.params.wildcard) {
@@ -17,16 +33,17 @@ function form (state, emitter) {
     }
 
     emitter.on(state.events.FORM_SET_EXAMPLE_DOCUMENT, function () {
-      state.form.address = 'github://stencila/examples/diamonds'
+      state.form.values.address = 'github://stencila/examples/diamonds'
       emitter.emit('render')
     })
 
-    emitter.on(state.events.FORM_UDPATE_ADDRESS, function (address) {
-      state.form.address = address
-    })
+    var bounce = nanobounce()
+    emitter.on(state.events.FORM_UPDATE, function (e) {
+      validator.validate(e.target.name, e.target.value)
 
-    emitter.on(state.events.FORM_UPDATE_TOKEN, function (token) {
-      state.form.token = token
+      bounce(function () {
+        emitter.emit('render')
+      })
     })
   })
 }

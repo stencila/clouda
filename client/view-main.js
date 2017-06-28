@@ -18,8 +18,9 @@ function mainView (state, emit) {
       <input name="address"
         type="text"
         class="mt2 pa2 f5 b--black"
-        value=${formState.address}
+        value=${formState.values.address}
         onchange=${onchange}
+        onkeyup=${onchange}
         placeholder="For example, github://stencila/examples/diamonds">
       <span class="mt2 lh-copy">
         Enter the document address. Is this your first time? See the
@@ -35,8 +36,9 @@ function mainView (state, emit) {
       <input name="token"
         type="text"
         class="mt2 pa2 f5 b--black"
-        value=${formState.token}
+        value=${formState.values.token}
         onchange=${onchange}
+        onkeyup=${onchange}
         placeholder="Token">
       <span class="mt2 lh-copy">
         During the beta, you need to provide a beta token.
@@ -81,14 +83,13 @@ function mainView (state, emit) {
 
   function onchange (e) {
     if (e.key === 'Enter') return onsubmit()
-    var name = e.target.name
-    var val = e.target.value
-    emit('form:update-' + name, val)
+    emit(state.events.FORM_UPDATE, e)
   }
 
   function onsubmit (e) {
     if (e) e.preventDefault()
-    emit(state.events.SSE_)
+    // TODO: replace with full on form validation
+    emit(state.events.SSE_LAUNCH_DOCUMENT)
   }
 
   function tryExample (e) {
@@ -183,7 +184,7 @@ function createLinks (state, emit) {
           <input type="radio" name="frozen"
             value="no"
             ${!frozen ? 'checked' : ''}
-            onclick=${event => emit(state.events.EMBED_UPDATE, false)}
+            onclick=${emit.bind(emit, state.events.EMBED_UPDATE, false)}
           />
           Unfrozen link to latest version
         </label>
@@ -191,7 +192,7 @@ function createLinks (state, emit) {
           <input type="radio" name="frozen"
             value="yes"
             ${frozen ? 'checked' : ''}
-            onclick=${event => emit(state.events.EMBED_UPDATE, true)}
+            onclick=${emit.bind(emit, state.events.EMBED_UPDATE, true)}
           />
           Frozen link to current version
         </label>

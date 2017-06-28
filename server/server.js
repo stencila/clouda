@@ -41,7 +41,7 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
   }
 
   parseFormdata(req, function (err, form) {
-    if (err) return errors.EPIPE(req, res, ctx, err)
+    if (err) return errors.EFORMPARSE(req, res, ctx, err)
     const token = form.fields.token
     if (token !== ctx.env.BETA_TOKEN) {
       return errors.EBETATOKENINVALID(req, res, ctx)

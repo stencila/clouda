@@ -9,7 +9,6 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(require('choo-log')())
 }
 
-app.use(function (state) { state.events = {} })
 app.use(require('./sse'))
 app.use(require('./form'))
 app.use(require('./embed'))
