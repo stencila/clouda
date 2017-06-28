@@ -1,3 +1,4 @@
+const parseFormdata = require('parse-formdata')
 const cookie = require('cookie')
 const jwt = require('jsonwebtoken')
 const merry = require('merry')
@@ -34,24 +35,26 @@ app.route('GET', '/~client/*', function (req, res, ctx) {
 app.route('GET', '/~launch/*', function (req, res, ctx) {
   res.setHeader('content-type', 'text/event-stream')
 
-  // Prevent nginx from buffering the stream
-  if (req.headers['x-nginx']) res.setHeader('X-Accel-Buffering', 'no')
-
-  // NOTE: For beta only
-  const uri = url.parse(req.url, true)
-  const token = uri.query.token
-  if (token !== ctx.env.BETA_TOKEN) {
-    return errors.EBETATOKENINVALID(req, res, ctx)
+  // Prevent nginx from buffering the SSE stream
+  if (req.headers['x-nginx']) {
+    res.setHeader('X-Accel-Buffering', 'no')
   }
 
-  // Launch `sibyl` Bash script and send output
-  // and errors as SSE events until it exits
-  const address = uri.pathname.substring(9)
-  const mock = uri.query && uri.query.mock ? '--mock' : ''
+  parseFormdata(req, function (err, form) {
+    if (err) return errors.EPIPE(req, res, ctx, err)
+    const token = form.fields.token
+    if (token !== ctx.env.BETA_TOKEN) {
+      return errors.EBETATOKENINVALID(req, res, ctx)
+    }
 
-  ctx.log.info('starting container for ' + address)
-  const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
-  sibylToStream(sibyl, req, res, ctx)
+    const address = form.fields.address
+    const uri = url.parse(req.url, true)
+    const mock = uri.query && uri.query.mock ? '--mock' : ''
+
+    ctx.log.info('starting container for ' + address)
+    const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
+    sibylToStream(sibyl, req, res, ctx)
+  })
 })
 
 // Container session

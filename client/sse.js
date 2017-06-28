@@ -1,12 +1,12 @@
-var events = require('./events')
-
 module.exports = sse
 
 function sse (state, emitter) {
+  state.events.SSE_LAUNCH_DOCUMENT = 'sse:launch-document'
+
   state.sse = reset()
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on(events.LAUNCH_DOCUMENT, function () {
+    emitter.on(state.events.LAUNCH_DOCUMENT, function () {
       const address = state.form.address + '?token=' + state.form.token
       const eventSource = new window.EventSource('/~launch/' + address)
 

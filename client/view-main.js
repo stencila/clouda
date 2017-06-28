@@ -1,8 +1,6 @@
 var html = require('choo/html')
 var css = require('sheetify')
 
-var events = require('./events')
-
 css`
   .terminal-white { color: #333 }
   .terminal-red { color: #ff7b7b }
@@ -90,12 +88,12 @@ function mainView (state, emit) {
 
   function onsubmit (e) {
     if (e) e.preventDefault()
-    emit(events.LAUNCH_DOCUMENT)
+    emit(state.events.SSE_)
   }
 
   function tryExample (e) {
     e.preventDefault()
-    emit(events.SET_EXAMPLE_DOCUMENT)
+    emit(state.events.FORM_SET_EXAMPLE_DOCUMENT)
   }
 }
 
@@ -185,7 +183,7 @@ function createLinks (state, emit) {
           <input type="radio" name="frozen"
             value="no"
             ${!frozen ? 'checked' : ''}
-            onclick=${event => emit('embed:update-frozen', false)}
+            onclick=${event => emit(state.events.EMBED_UPDATE, false)}
           />
           Unfrozen link to latest version
         </label>
@@ -193,7 +191,7 @@ function createLinks (state, emit) {
           <input type="radio" name="frozen"
             value="yes"
             ${frozen ? 'checked' : ''}
-            onclick=${event => emit('embed:update-frozen', true)}
+            onclick=${event => emit(state.events.EMBED_UPDATE, true)}
           />
           Frozen link to current version
         </label>
