@@ -89,7 +89,7 @@ function mainView (state, emit) {
   function onsubmit (e) {
     if (e) e.preventDefault()
     // TODO: replace with full on form validation
-    emit(state.events.SSE_LAUNCH_DOCUMENT)
+    emit(state.events.FORM_SUBMIT)
   }
 
   function tryExample (e) {

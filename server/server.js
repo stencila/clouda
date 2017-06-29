@@ -2,13 +2,11 @@ const parseFormdata = require('parse-formdata')
 const cookie = require('cookie')
 const jwt = require('jsonwebtoken')
 const merry = require('merry')
-const path = require('path')
 const pump = require('pump')
 const send = require('send')
-const spawn = require('child_process').spawn
 const url = require('url')
 
-const sibylToStream = require('./sibyl-to-stream')
+const Sibyl = require('./sibyl')
 const errors = require('./errors')
 
 const env = {
@@ -18,21 +16,10 @@ const env = {
 }
 
 const app = merry({ env: env })
-
-// Static content in `client` folder
-app.route('GET', '/~client/*', function (req, res, ctx) {
-  const source = send(req, path.join('client', req.url.subString(8)))
-  pump(source, res, function (err) {
-    if (err) errors.EPIPE(req, res, ctx, err)
-  })
-})
+const sibyl = Sibyl(app.log)
 
 // Launch stream.
-//
-// Runs the `sibyl` Bash script and creates a server send event stream of it's
-// output which is displayed by `client.js`.
-// See https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
-app.route('GET', '/~launch/*', function (req, res, ctx) {
+app.route('POST', '/~launch', function (req, res, ctx) {
   res.setHeader('content-type', 'text/event-stream')
 
   // Prevent nginx from buffering the SSE stream
@@ -42,6 +29,7 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
 
   parseFormdata(req, function (err, form) {
     if (err) return errors.EFORMPARSE(req, res, ctx, err)
+
     const token = form.fields.token
     if (token !== ctx.env.BETA_TOKEN) {
       return errors.EBETATOKENINVALID(req, res, ctx)
@@ -49,11 +37,16 @@ app.route('GET', '/~launch/*', function (req, res, ctx) {
 
     const address = form.fields.address
     const uri = url.parse(req.url, true)
-    const mock = uri.query && uri.query.mock ? '--mock' : ''
-
     ctx.log.info('starting container for ' + address)
-    const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
-    sibylToStream(sibyl, req, res, ctx)
+
+    const opts = { mock: uri.query && uri.query.mock }
+
+    const id = sibyl.launch(address, opts)
+    if (id) {
+      ctx.send(200, { token: id })
+    } else {
+      ctx.send(500, { message: 'Error botting image' })
+    }
   })
 })
 
