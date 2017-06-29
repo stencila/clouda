@@ -1,14 +1,18 @@
-var events = require('./events')
+var assert = require('assert')
 
 module.exports = sse
 
 function sse (state, emitter) {
+  state.events.SSE_LAUNCH_DOCUMENT = 'sse:launch-document'
+
   state.sse = reset()
 
   emitter.on('DOMContentLoaded', function () {
-    emitter.on(events.LAUNCH_DOCUMENT, function () {
-      const address = state.form.address + '?token=' + state.form.token
-      const eventSource = new window.EventSource('/~launch/' + address)
+    emitter.on(state.events.SSE_LAUNCH_DOCUMENT, function (token) {
+      assert.equal(typeof token, 'string', state.events.SSE_LAUNCH_DOCUMENT + ' expected token to be type string')
+
+      state.sse.sourceUrl = '/~open/' + token
+      const eventSource = new window.EventSource(state.sse.sourceUrl)
 
       state.sse = reset()
 
@@ -37,7 +41,7 @@ function sse (state, emitter) {
       }, false)
 
       eventSource.addEventListener('goto', function (event) {
-        state.sse.url = '/~session/' + event.data + '/~'
+        state.sse.targetUrl = '/~session/' + event.data + '/~'
         state.sse.percent = updateProgress()
         emitter.emit('render')
       }, false)
@@ -54,7 +58,7 @@ function sse (state, emitter) {
   })
 
   function updateProgress () {
-    return state.sse.url
+    return state.sse.targetUrl
       ? 100
       : Math.min(state.sse.log.length / 20 * 100, 80)
   }
@@ -64,7 +68,8 @@ function sse (state, emitter) {
       log: [],
       step: null,
       image: null,
-      url: '',
+      sourceUrl: '',
+      targetUrl: '',
       stderr: 0,
       stdout: 0,
       percent: 0
