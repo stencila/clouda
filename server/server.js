@@ -1,13 +1,12 @@
+const parseFormdata = require('parse-formdata')
 const cookie = require('cookie')
-const eos = require('end-of-stream')
 const jwt = require('jsonwebtoken')
 const merry = require('merry')
-const path = require('path')
 const pump = require('pump')
 const send = require('send')
-const spawn = require('child_process').spawn
 const url = require('url')
 
+const Sibyl = require('./sibyl')
 const errors = require('./errors')
 
 const env = {
@@ -17,51 +16,54 @@ const env = {
 }
 
 const app = merry({ env: env })
+const sibyl = Sibyl(app.log)
 
-// Static content in `client` folder
-app.route('GET', '/~client/*', function (req, res, ctx) {
-  const source = send(req, path.join('client', req.url.subString(8)))
-  pump(source, res, function (err) {
+// Launch stream.
+app.route('POST', '/~launch', function (req, res, ctx) {
+  parseFormdata(req, function (err, form) {
+    if (err) return errors.EFORMPARSE(req, res, ctx, err)
+
+    const token = form.fields.token
+    if (token !== ctx.env.BETA_TOKEN) {
+      return errors.EBETATOKENINVALID(req, res, ctx)
+    }
+
+    const address = form.fields.address
+    const uri = url.parse(req.url, true)
+    ctx.log.info('starting container for ' + address)
+
+    const opts = { mock: uri.query && uri.query.mock }
+
+    const id = sibyl.launch(address, opts)
+    if (id) {
+      ctx.send(200, { token: id })
+    } else {
+      ctx.send(500, { message: 'Error botting image' })
+    }
+  })
+})
+
+// Connect to an existing SSE stream
+app.route('GET', '~open/:token', function (req, res, ctx) {
+  if (!ctx.params.token) return ctx.send(400, { message: 'No token provided' })
+
+  var session = sibyl.get(ctx.params.token)
+  if (!session) return ctx.send(400, { message: 'No existing session found for the provided token' })
+
+  // Prevent nginx from buffering the SSE stream
+  if (req.headers['x-nginx']) res.setHeader('X-Accel-Buffering', 'no')
+  res.setHeader('content-type', 'text/event-stream')
+  pump(session, res, function (err) {
     if (err) errors.EPIPE(req, res, ctx, err)
   })
 })
 
-// Launch stream.
-//
-// Runs the `sibyl` Bash script and creates a server send event stream of it's
-// output which is displayed by `client.js`.
-// See https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events
-app.route('GET', '/~launch/*', function (req, res, ctx) {
-  res.setHeader('content-type', 'text/event-stream')
-
-  // Prevent nginx from buffering the stream
-  if (req.headers['x-nginx']) res.setHeader('X-Accel-Buffering', 'no')
-
-  // NOTE: For beta only
-  const uri = url.parse(req.url, true)
-  const token = uri.query.token
-  if (token !== ctx.env.BETA_TOKEN) {
-    return errors.EBETATOKENINVALID(req, res, ctx)
-  }
-
-  // Launch `sibyl` Bash script and send output
-  // and errors as SSE events until it exits
-  const address = uri.pathname.substring(9)
-  const mock = uri.query && uri.query.mock ? '--mock' : ''
-
-  ctx.log.info('starting container for ' + address)
-  const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
-  sibylToStream(sibyl, req, res, ctx)
-})
-
 // Container session
-app.route('GET', '/~session/*', proxyToSession)
-app.route('POST', '/~session/*', proxyToSession)
-app.route('PUT', '/~session/*', proxyToSession)
-app.route('DELETE', '/~session/*', proxyToSession)
+app.route([ 'GET', 'POST', 'PUT', 'DELETE' ], '/~session/*', proxyToSession)
 
 // All other non-tilded paths get "rewritten" to
 // container sessions
+app.route([ 'POST', 'PUT', 'DELETE' ], '/*', rewriteToSession)
 app.route('GET', '/*', function (req, res, ctx) {
   let session = req.headers.referer && req.headers.referer.match(/\/~session\/([^/]+)/)
   if (!session && (req.url === '/' || req.url.match(/^\/[a-z]+:\/\/.+/))) {
@@ -69,89 +71,30 @@ app.route('GET', '/*', function (req, res, ctx) {
     pump(source, res, function (err) {
       if (err) errors.EPIPE(req, res, ctx, err)
     })
-  } else if (req.url === '/bundle.js') {
-    const source = send(req, 'dist/bundle.js')
-    pump(source, res, function (err) {
-      if (err) errors.EPIPE(req, res, ctx, err)
-    })
-  } else if (req.url === '/bundle.css') {
-    const source = send(req, 'dist/bundle.css')
-    pump(source, res, function (err) {
-      if (err) errors.EPIPE(req, res, ctx, err)
-    })
   } else {
     rewriteToSession(req, res, ctx)
   }
 })
-app.route('POST', '/*', rewriteToSession)
-app.route('PUT', '/*', rewriteToSession)
-app.route('DELETE', '/*', rewriteToSession)
+
+app.route('GET', '/bundle.js', function (req, res, ctx) {
+  const source = send(req, 'dist/bundle.js')
+  pump(source, res, function (err) {
+    if (err) errors.EPIPE(req, res, ctx, err)
+  })
+})
+
+app.route('GET', '/bundle.css', function (req, res, ctx) {
+  const source = send(req, 'dist/bundle.css')
+  pump(source, res, function (err) {
+    if (err) errors.EPIPE(req, res, ctx, err)
+  })
+})
 
 // Handle 404 routes
 app.route('default', errors.EURLNOTFOUND)
 
 // Start the app
 app.listen()
-
-// Safely forward the sibyl script into a stream of messages
-// Connects the sibyl child process, a write stream and a context
-function sibylToStream (sibyl, req, res, ctx) {
-  var closed = false
-
-  sibyl.stdout.on('data', onStdout)
-  sibyl.stderr.on('data', onStderr)
-  sibyl.on('exit', onExit)
-
-  eos(res, function (err) {
-    if (err) ctx.log.error(err)
-    ctx.log.debug('closing SSE stream')
-    sibyl.stdout.removeListener('data', onStdout)
-    sibyl.stderr.removeListener('data', onStderr)
-    sibyl.removeListener('exit', onExit)
-    closed = true
-  })
-
-  function onStdout (data) {
-    if (closed) return
-    for (let line of data.toString().split('\n')) {
-      if (line.length) {
-        const match = line.match(/^(STEP|IMAGE|GOTO) (.+)$/)
-        if (match) {
-          let type = match[1]
-          let data = match[2]
-          if (type === 'STEP') {
-            ctx.log.debug('SSE: sending step')
-            res.write(`event: step\ndata: ${data}\n\n`)
-          } else if (type === 'IMAGE') {
-            ctx.log.debug('SSE: sending image')
-            res.write(`event: image\ndata: ${data}\n\n`)
-          } else if (type === 'GOTO') {
-            const token = jwt.sign({ url: data }, ctx.env.TOKEN_SECRET, { expiresIn: '12h' })
-            ctx.log.debug('SSE: sending stdout goto')
-            res.write(`event: goto\ndata: ${token}\n\n`)
-          }
-        } else {
-          ctx.log.debug('SSE: sending stdout data')
-          res.write(`event: stdout\ndata: ${line}\n\n`)
-        }
-      }
-    }
-  }
-
-  function onStderr (data) {
-    if (closed) return
-    for (let line of data.toString().split('\n')) {
-      ctx.log.debug('SSE: sending stderr data')
-      res.write(`event: stderr\ndata: ${line}\n\n`)
-    }
-  }
-
-  function onExit (data) {
-    if (closed) return
-    ctx.log.debug('SSE: sending end event')
-    res.write(`event: end\ndata: ${data}\n\n`)
-  }
-}
 
 // Proxy/redirect requests to a container session
 function proxyToSession (req, res, ctx) {

@@ -1,8 +1,6 @@
 var html = require('choo/html')
 var css = require('sheetify')
 
-var events = require('./events')
-
 css`
   .terminal-white { color: #333 }
   .terminal-red { color: #ff7b7b }
@@ -17,11 +15,11 @@ function mainView (state, emit) {
       <label class="f4 b" for="address">
         Document address
       </label>
-      <input name="address"
-        type="text"
+      <input name="address" type="text" aria-label="address"
         class="mt2 pa2 f5 b--black"
-        value=${formState.address}
+        value=${formState.values.address}
         onchange=${onchange}
+        onkeyup=${onchange}
         placeholder="For example, github://stencila/examples/diamonds">
       <span class="mt2 lh-copy">
         Enter the document address. Is this your first time? See the
@@ -34,16 +32,16 @@ function mainView (state, emit) {
       <label class="f4 b mt3" for="token">
         Beta token
       </label>
-      <input name="token"
-        type="text"
+      <input name="token" type="text" aria-label="token"
         class="mt2 pa2 f5 b--black"
-        value=${formState.token}
+        value=${formState.values.token}
         onchange=${onchange}
+        onkeyup=${onchange}
         placeholder="Token">
       <span class="mt2 lh-copy">
         During the beta, you need to provide a beta token.
       </span>
-      <input type="submit"
+      <input type="submit" aria-label="open"
         class="mw4 mt2 mh0 bg-white f5 b--black pa2 link pointer"
         value="Open">
     </form>
@@ -83,19 +81,18 @@ function mainView (state, emit) {
 
   function onchange (e) {
     if (e.key === 'Enter') return onsubmit()
-    var name = e.target.name
-    var val = e.target.value
-    emit('form:update-' + name, val)
+    emit(state.events.FORM_UPDATE, e)
   }
 
   function onsubmit (e) {
     if (e) e.preventDefault()
-    emit(events.LAUNCH_DOCUMENT)
+    // TODO: replace with full on form validation
+    emit(state.events.FORM_SUBMIT)
   }
 
   function tryExample (e) {
     e.preventDefault()
-    emit(events.SET_EXAMPLE_DOCUMENT)
+    emit(state.events.FORM_SET_EXAMPLE_DOCUMENT)
   }
 }
 
@@ -146,9 +143,9 @@ function createProgress (state, emit) {
 
   function createButton () {
     var button
-    if (state.sse.url) {
+    if (state.sse.targetUrl) {
       button = html`
-        <a href=${state.sse.url}
+        <a href=${state.sse.targetUrl}
           class="mh0 pa2 f5 ba bw1 bg-green b--green link white pointer"
           data-no-routing
           target="_blank">
@@ -185,7 +182,7 @@ function createLinks (state, emit) {
           <input type="radio" name="frozen"
             value="no"
             ${!frozen ? 'checked' : ''}
-            onclick=${event => emit('embed:update-frozen', false)}
+            onclick=${emit.bind(emit, state.events.EMBED_UPDATE, false)}
           />
           Unfrozen link to latest version
         </label>
@@ -193,7 +190,7 @@ function createLinks (state, emit) {
           <input type="radio" name="frozen"
             value="yes"
             ${frozen ? 'checked' : ''}
-            onclick=${event => emit('embed:update-frozen', true)}
+            onclick=${emit.bind(emit, state.events.EMBED_UPDATE, true)}
           />
           Frozen link to current version
         </label>

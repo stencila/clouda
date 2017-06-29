@@ -13,8 +13,14 @@ exports.EURLNOTFOUND = function (req, res, ctx) {
 }
 
 exports.ESESSIONINVALID = function (req, res, ctx, err) {
-  res.statusCode = 403
+  ctx.log.warn('Invalid session ID')
   ctx.send(403, { message: 'Invalid session ID' })
+}
+
+exports.EFORMPARSE = function (req, res, ctx, err) {
+  var msg = err.message
+  ctx.log.warn(msg)
+  ctx.send(403, { message: msg })
 }
 
 exports.EBETATOKENINVALID = function (req, res, ctx, err) {
