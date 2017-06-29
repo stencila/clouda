@@ -15,8 +15,7 @@ function mainView (state, emit) {
       <label class="f4 b" for="address">
         Document address
       </label>
-      <input name="address"
-        type="text"
+      <input name="address" type="text" aria-label="address"
         class="mt2 pa2 f5 b--black"
         value=${formState.values.address}
         onchange=${onchange}
@@ -33,8 +32,7 @@ function mainView (state, emit) {
       <label class="f4 b mt3" for="token">
         Beta token
       </label>
-      <input name="token"
-        type="text"
+      <input name="token" type="text" aria-label="token"
         class="mt2 pa2 f5 b--black"
         value=${formState.values.token}
         onchange=${onchange}
@@ -43,7 +41,7 @@ function mainView (state, emit) {
       <span class="mt2 lh-copy">
         During the beta, you need to provide a beta token.
       </span>
-      <input type="submit"
+      <input type="submit" aria-label="open"
         class="mw4 mt2 mh0 bg-white f5 b--black pa2 link pointer"
         value="Open">
     </form>
