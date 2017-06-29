@@ -9,7 +9,7 @@ const uuid = require('uuid')
 const lru = alru(30, {
   evict: function (index, stream) {
     if (stream.destroy) stream.destroy()
-    else stream.close()
+    else stream.end()
   }
 })
 

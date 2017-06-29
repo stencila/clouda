@@ -38,7 +38,7 @@ app.route('POST', '/~launch', function (req, res, ctx) {
     if (id) {
       ctx.send(200, { token: id })
     } else {
-      ctx.send(500, { message: 'Error botting image' })
+      ctx.send(500, { message: 'Error booting image' })
     }
   })
 })
