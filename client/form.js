@@ -42,8 +42,17 @@ function form (state, emitter) {
       assert.ok(state.form.valid, 'form submitted without being valid')
       var opts = { body: validator.formData() }
       xhr.post('/~launch', opts, function (err, res, body) {
-        if (err) console.error('err', err)
-        console.log('OK', body)
+        if (err) return emitter.emit('log:error', err)
+        if (!body && !body.token) {
+          return emitter.emit('log:error', new Error('No response body found'))
+        }
+
+        try {
+          body = JSON.parse(body)
+        } catch (e) {
+          return emitter.emit('log:error', new Error('Could not parse body response'))
+        }
+        emitter.emit(state.events.SSE_LAUNCH_DOCUMENT, body.token)
       })
     })
 

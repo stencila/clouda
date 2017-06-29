@@ -20,13 +20,6 @@ const sibyl = Sibyl(app.log)
 
 // Launch stream.
 app.route('POST', '/~launch', function (req, res, ctx) {
-  res.setHeader('content-type', 'text/event-stream')
-
-  // Prevent nginx from buffering the SSE stream
-  if (req.headers['x-nginx']) {
-    res.setHeader('X-Accel-Buffering', 'no')
-  }
-
   parseFormdata(req, function (err, form) {
     if (err) return errors.EFORMPARSE(req, res, ctx, err)
 
@@ -47,6 +40,21 @@ app.route('POST', '/~launch', function (req, res, ctx) {
     } else {
       ctx.send(500, { message: 'Error botting image' })
     }
+  })
+})
+
+// Connect to an existing SSE stream
+app.route('GET', '~open/:token', function (req, res, ctx) {
+  if (!ctx.params.token) return ctx.send(400, { message: 'No token provided' })
+
+  var session = sibyl.get(ctx.params.token)
+  if (!session) return ctx.send(400, { message: 'No existing session found for the provided token' })
+
+  // Prevent nginx from buffering the SSE stream
+  if (req.headers['x-nginx']) res.setHeader('X-Accel-Buffering', 'no')
+  res.setHeader('content-type', 'text/event-stream')
+  pump(session, res, function (err) {
+    if (err) errors.EPIPE(req, res, ctx, err)
   })
 })
 

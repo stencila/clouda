@@ -143,9 +143,9 @@ function createProgress (state, emit) {
 
   function createButton () {
     var button
-    if (state.sse.url) {
+    if (state.sse.targetUrl) {
       button = html`
-        <a href=${state.sse.url}
+        <a href=${state.sse.targetUrl}
           class="mh0 pa2 f5 ba bw1 bg-green b--green link white pointer"
           data-no-routing
           target="_blank">

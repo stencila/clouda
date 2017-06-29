@@ -8,7 +8,8 @@ const uuid = require('uuid')
 // to prevent memory leaking
 const lru = alru(30, {
   evict: function (index, stream) {
-    stream.destroy()
+    if (stream.destroy) stream.destroy()
+    else stream.close()
   }
 })
 
