@@ -50,6 +50,11 @@ spec:
                 secretKeyRef:
                   name: token-secret
                   key: token-secret.txt
+            - name: BETA_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: beta-token
+                  key: beta-token.txt
           ports:
             - containerPort: 3000
           volumeMounts:
