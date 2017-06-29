@@ -2,6 +2,7 @@ const parseFormdata = require('parse-formdata')
 const cookie = require('cookie')
 const jwt = require('jsonwebtoken')
 const merry = require('merry')
+const path = require('path')
 const pump = require('pump')
 const send = require('send')
 const url = require('url')
@@ -85,6 +86,16 @@ app.route('GET', '/bundle.js', function (req, res, ctx) {
 
 app.route('GET', '/bundle.css', function (req, res, ctx) {
   const source = send(req, 'dist/bundle.css')
+  pump(source, res, function (err) {
+    if (err) errors.EPIPE(req, res, ctx, err)
+  })
+})
+
+// Serve static files for the Stencila UIs from here rather than from
+// inside session containers
+app.route('GET', '/static/stencila/*', function (req, res, ctx) {
+  const pathname = url.parse(req.url).pathname
+  const source = send(req, path.join('node_modules/stencila/build/', pathname.substring(17)))
   pump(source, res, function (err) {
     if (err) errors.EPIPE(req, res, ctx, err)
   })
