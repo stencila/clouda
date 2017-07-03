@@ -49,9 +49,15 @@ FormElement.prototype._render = function (state, emit) {
       <span class="mt2 lh-copy">
         During the beta, you need to provide a beta token.
       </span>
-      <input type="submit" aria-label="open"
-        class="mw4 mt3 mh0 bg-white f5 b--black br2 pa2 link pointer"
-        value="Open">
+      ${formState.valid
+        ? html`<input type="submit" aria-label="open"
+            class="mw4 mt3 mh0 bg-black white f5 bn br2 pa2 link pointer"
+            value="Open">`
+        : html`<input type="submit" aria-label="open"
+            disabled
+            class="mw4 mt3 mh0 bg-silver white f5 bn br2 pa2 link"
+            value="Open">`
+      }
     </form>
   `
 

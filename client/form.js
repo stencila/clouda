@@ -58,7 +58,7 @@ function form (state, emitter) {
     })
 
     emitter.on(state.events.FORM_SET_EXAMPLE_DOCUMENT, function () {
-      state.form.values.address = 'github://stencila/examples/diamonds'
+      validator.validate('address', 'github://stencila/examples/diamonds')
       render()
     })
 
