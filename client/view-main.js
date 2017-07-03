@@ -2,6 +2,7 @@ var html = require('choo/html')
 var css = require('sheetify')
 
 var progress = require('./progress-element')()
+var form = require('./form-element')()
 
 css`
   .terminal-white { color: #333 }
@@ -30,7 +31,7 @@ function mainView (state, emit) {
       <main class="flex flex-column mw7 pa3 center">
         <section class="flex flex-column justify-between content-stretch">
           <section class="w-100">
-            ${createForm(state, emit)}
+            ${form.render(state, emit)}
           </section>
           <section class="w-100">
             ${progress.render(state, emit)}
@@ -42,62 +43,6 @@ function mainView (state, emit) {
       </main>
     </body>
   `
-}
-
-function createForm (state, emit) {
-  var formState = state.form
-  return html`
-    <form class="flex flex-column align-right" onsubmit=${onsubmit}>
-      <label class="f4 b" for="address">
-        Document address
-      </label>
-      <input name="address" type="text" aria-label="address"
-        class="mt2 pa2 f5 b--black br2"
-        value=${formState.values.address}
-        onchange=${onchange}
-        onkeyup=${onchange}
-        placeholder="For example, github://stencila/examples/diamonds">
-      <span class="mt2 lh-copy">
-        Enter the document address. Is this your first time? See the
-        <a class="bn black pointer link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">docs</a>
-        or
-        <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
-          try an example
-        </button>
-      </span>
-      <label class="f4 b mt3" for="token">
-        Beta token
-      </label>
-      <input name="token" type="text" aria-label="token"
-        class="mt2 pa2 f5 b--black br2"
-        value=${formState.values.token}
-        onchange=${onchange}
-        onkeyup=${onchange}
-        placeholder="Token">
-      <span class="mt2 lh-copy">
-        During the beta, you need to provide a beta token.
-      </span>
-      <input type="submit" aria-label="open"
-        class="mw4 mt3 mh0 bg-white f5 b--black br2 pa2 link pointer"
-        value="Open">
-    </form>
-  `
-
-  function onchange (e) {
-    if (e.key === 'Enter') return onsubmit()
-    emit(state.events.FORM_UPDATE, e)
-  }
-
-  function onsubmit (e) {
-    if (e) e.preventDefault()
-    // TODO: replace with full on form validation
-    emit(state.events.FORM_SUBMIT)
-  }
-
-  function tryExample (e) {
-    e.preventDefault()
-    emit(state.events.FORM_SET_EXAMPLE_DOCUMENT)
-  }
 }
 
 function createLinks (state, emit) {

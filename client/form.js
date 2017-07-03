@@ -12,6 +12,7 @@ function form (state, emitter) {
 
   var validator = validateFormdata()
   state.form = validator.state
+  state.form.clock = 0
 
   // TODO: fix this in validat-formdata
   state.form.values.address = ''
@@ -29,13 +30,13 @@ function form (state, emitter) {
     // Set a default value for the form during development
     if (process.env.NODE_ENV !== 'production') {
       validator.validate('token', 'platypus')
-      emitter.emit('render')
+      render()
     }
 
     // Read the current path location and set it as the address
     if (state.params.wildcard) {
       validator.validate('address', state.params.wildcard)
-      emitter.emit('render')
+      render()
     }
 
     emitter.on(state.events.FORM_SUBMIT, function () {
@@ -58,16 +59,19 @@ function form (state, emitter) {
 
     emitter.on(state.events.FORM_SET_EXAMPLE_DOCUMENT, function () {
       state.form.values.address = 'github://stencila/examples/diamonds'
-      emitter.emit('render')
+      render()
     })
 
     var bounce = nanobounce()
     emitter.on(state.events.FORM_UPDATE, function (e) {
       validator.validate(e.target.name, e.target.value)
 
-      bounce(function () {
-        emitter.emit('render')
-      })
+      bounce(render)
     })
   })
+
+  function render () {
+    state.form.clock += 1
+    emitter.emit('render')
+  }
 }
