@@ -1,5 +1,4 @@
 var validateFormdata = require('validate-formdata')
-var nanobounce = require('nanobounce')
 var assert = require('assert')
 var xhr = require('xhr')
 
@@ -26,9 +25,15 @@ function form (state, emitter) {
   state.form.selected = null
   state.form.clock = 0
 
-  validator.field('address', function (data) {
-    state.form.selected = getFileType(data)
-    // TODO: write validation code
+  validator.field('address', function (address) {
+    var fileType = getFileType(address)
+    state.form.selected = fileType
+
+    var target = address.match(/[\w]+:\/{2}([\w.-_]+)/)
+    if (target && target.length >= 2) target = target[1]
+
+    if (!fileType) return new Error('Address should have a valid file type prefix')
+    if (!target) return new Error('An address should have both a protocol and a target')
   })
 
   validator.field('token', function (data) {
@@ -53,6 +58,7 @@ function form (state, emitter) {
 
     emitter.on(state.events.FORM_SUBMIT, function () {
       assert.ok(state.form.valid, 'form submitted without being valid')
+
       var opts = { body: validator.formData() }
       xhr.post('/~launch', opts, function (err, res, body) {
         if (err) return emitter.emit('log:error', err)
@@ -74,7 +80,6 @@ function form (state, emitter) {
       render()
     })
 
-    var bounce = nanobounce()
     emitter.on(state.events.FORM_UPDATE, function (event) {
       var value = event.value
       var key = event.key
@@ -83,8 +88,7 @@ function form (state, emitter) {
       if (key === 'image') {
         validator.validate('address', 'file://' + value.name)
       }
-
-      bounce(render)
+      if (validator.changed) render()
     })
   })
 

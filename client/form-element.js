@@ -123,11 +123,22 @@ function renderProviders (state, emit) {
         Provider:
       </b>
       ${providerNames.map(function (provider, i) {
-        var className = 'f6 ml2'
+        var className = 'f6 ml2 bn pa0 bg-white pointer link'
         // if (i !== 0) className += ' ml2'
         if (provider.toLowerCase() === selected) className += ' black b'
         else className += ' light-silver'
-        return html`<div class=${className}>${provider}</div>`
+        return html`
+          <button class=${className} onclick=${onclick}>
+            ${provider}
+          </button>
+        `
+        function onclick (e) {
+          e.preventDefault()
+          emit(state.events.FORM_UPDATE, {
+            key: 'address',
+            value: provider.toLowerCase() + '://'
+          })
+        }
       })}
     </div>
   `
