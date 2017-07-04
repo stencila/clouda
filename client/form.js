@@ -26,22 +26,16 @@ function form (state, emitter) {
   state.form.selected = null
   state.form.clock = 0
 
-  // TODO: fix this in validate-formdata
-  state.form.values.address = ''
-  state.form.values.token = ''
-
-  validator.add('address', function (data) {
+  validator.field('address', function (data) {
     state.form.selected = getFileType(data)
     // TODO: write validation code
   })
 
-  validator.add('token', function (data) {
+  validator.field('token', function (data) {
     // TODO: write validation code
   })
 
-  // TODO: fix this in validate-formdata
-  state.form.pristine.image = false
-  validator.add('image', function (data) {
+  validator.file('image', { required: false }, function (data) {
     // TODO: write validation code
   })
 
