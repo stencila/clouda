@@ -3,6 +3,16 @@ var nanobounce = require('nanobounce')
 var assert = require('assert')
 var xhr = require('xhr')
 
+var providerNames = [
+  'bitbucket',
+  'dat',
+  'docker',
+  'dropbox',
+  'file',
+  'github',
+  'gitlab'
+]
+
 module.exports = form
 
 function form (state, emitter) {
@@ -12,13 +22,16 @@ function form (state, emitter) {
 
   var validator = validateFormdata()
   state.form = validator.state
+  state.form.fileType = null
+  state.form.selected = null
   state.form.clock = 0
 
-  // TODO: fix this in validat-formdata
+  // TODO: fix this in validate-formdata
   state.form.values.address = ''
   state.form.values.token = ''
 
   validator.add('address', function (data) {
+    state.form.selected = getFileType(data)
     // TODO: write validation code
   })
 
@@ -26,13 +39,18 @@ function form (state, emitter) {
     // TODO: write validation code
   })
 
-  emitter.on('DOMContentLoaded', function () {
-    // Set a default value for the form during development
-    if (process.env.NODE_ENV !== 'production') {
-      validator.validate('token', 'platypus')
-      render()
-    }
+  // TODO: fix this in validate-formdata
+  state.form.pristine.image = false
+  validator.add('image', function (data) {
+    // TODO: write validation code
+  })
 
+  // Set a default value for the form during development
+  if (process.env.NODE_ENV !== 'production') {
+    validator.validate('token', 'platypus')
+  }
+
+  emitter.on('DOMContentLoaded', function () {
     // Read the current path location and set it as the address
     if (state.params.wildcard) {
       validator.validate('address', state.params.wildcard)
@@ -63,8 +81,14 @@ function form (state, emitter) {
     })
 
     var bounce = nanobounce()
-    emitter.on(state.events.FORM_UPDATE, function (e) {
-      validator.validate(e.target.name, e.target.value)
+    emitter.on(state.events.FORM_UPDATE, function (event) {
+      var value = event.value
+      var key = event.key
+
+      validator.validate(key, value)
+      if (key === 'image') {
+        validator.validate('address', 'file://' + value.name)
+      }
 
       bounce(render)
     })
@@ -74,4 +98,13 @@ function form (state, emitter) {
     state.form.clock += 1
     emitter.emit('render')
   }
+}
+
+function getFileType (str) {
+  var type = str.split('://')
+  if (type.length !== 2) return
+  type = type[0]
+  var index = providerNames.indexOf(type)
+  if (index !== -1) return providerNames[index]
+  else return null
 }

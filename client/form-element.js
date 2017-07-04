@@ -1,10 +1,33 @@
 var CacheComponent = require('cache-component')
 var html = require('choo/html')
+var css = require('sheetify')
+
+var uploadClass = css`
+  :host {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+  }
+`
+
+var providerNames = [
+  'Bitbucket',
+  'Dat',
+  'Docker',
+  'Dropbox',
+  'File',
+  'GitHub',
+  'GitLab'
+]
 
 module.exports = FormElement
 
 function FormElement () {
   if (!(this instanceof FormElement)) return new FormElement()
+  this.clock = -1
   CacheComponent.call(this)
 }
 FormElement.prototype = Object.create(CacheComponent.prototype)
@@ -23,13 +46,23 @@ FormElement.prototype._render = function (state, emit) {
       <label class="f4 b" for="address">
         Document address
       </label>
-      <input name="address" type="text" aria-label="address"
-        class="mt2 pa2 f5 b--black br2"
-        value=${formState.values.address}
-        onchange=${onchange}
-        onkeyup=${onchange}
-        placeholder="For example, github://stencila/examples/diamonds">
-      <span class="mt2 lh-copy">
+      <div class="flex flex-column flex-row-ns">
+        <input name="address" id="address" type="text" aria-label="address"
+          class="w-100 w-70-ns mt2 pa2 f5 b--black br2"
+          value=${formState.values.address}
+          onchange=${onchange}
+          onkeyup=${onchange}
+          placeholder="For example, github://stencila/examples/diamonds" />
+        <input name="image" id="image" type="file"
+          onchange=${onchange}
+          class=${uploadClass}/>
+        <label for="image"
+          class="w-100 w-30-ns ml2-ns mt2 br2 ph2-ns pv2 pointer white bg-black flex justify-center">
+          Upload document
+        </label>
+      </div>
+      ${renderProviders(state, emit)}
+      <span class="mt1 lh-copy">
         Enter the document address. Is this your first time? See the
         <a class="bn black pointer link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">docs</a>
         or
@@ -63,7 +96,11 @@ FormElement.prototype._render = function (state, emit) {
 
   function onchange (e) {
     if (e.key === 'Enter') return onsubmit()
-    emit(state.events.FORM_UPDATE, e)
+    var event = {
+      key: e.target.name,
+      value: e.target.type === 'file' ? e.target.files[0] : e.target.value
+    }
+    emit(state.events.FORM_UPDATE, event)
   }
 
   function onsubmit (e) {
@@ -76,4 +113,22 @@ FormElement.prototype._render = function (state, emit) {
     e.preventDefault()
     emit(state.events.FORM_SET_EXAMPLE_DOCUMENT)
   }
+}
+
+function renderProviders (state, emit) {
+  var selected = state.form.selected
+  return html`
+    <div class="flex flex-row mt1 lh-copy">
+      <b class="f6 black">
+        Provider:
+      </b>
+      ${providerNames.map(function (provider, i) {
+        var className = 'f6 ml2'
+        // if (i !== 0) className += ' ml2'
+        if (provider.toLowerCase() === selected) className += ' black b'
+        else className += ' light-silver'
+        return html`<div class=${className}>${provider}</div>`
+      })}
+    </div>
+  `
 }
