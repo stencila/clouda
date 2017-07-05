@@ -9,9 +9,9 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(require('choo-log')())
 }
 
-app.use(require('./sse'))
-app.use(require('./form'))
-app.use(require('./embed'))
+app.use(require('./sse'))     // parse logs from containers
+app.use(require('./form'))    // submit things to the server
+app.use(require('./embed'))   // markdown embed logic
 
 app.route('/', require('./view-main'))
 app.route('/*', require('./view-main'))
