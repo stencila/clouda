@@ -1,4 +1,5 @@
 var validateFormdata = require('validate-formdata')
+var parse = require('fast-json-parse')
 var assert = require('assert')
 var xhr = require('xhr')
 
@@ -62,16 +63,14 @@ function form (state, emitter) {
       var opts = { body: validator.formData() }
       xhr.post('/~launch', opts, function (err, res, body) {
         if (err) return emitter.emit('log:error', err)
-        if (!body && !body.token) {
-          return emitter.emit('log:error', new Error('No response body found'))
-        }
+        if (res.statusCode >= 400) return emitter.emit('log:error', res)
 
-        try {
-          body = JSON.parse(body)
-        } catch (e) {
-          return emitter.emit('log:error', new Error('Could not parse body response'))
-        }
-        emitter.emit(state.events.SSE_LAUNCH_DOCUMENT, body.token)
+        var json = parse(body)
+        if (json.err) return emitter.emit('log:error', new Error('Could not parse body response'))
+        else json = json.value
+
+        if (!json.token) return emitter.emit('log:error', new Error('Expected json.token to exist'))
+        emitter.emit(state.events.SSE_LAUNCH_DOCUMENT, json.token)
       })
     })
 

@@ -66,20 +66,20 @@ app.route('POST', '/~launch', function (req, res, ctx) {
     const opts = { mock: uri.query && uri.query.mock }
 
     // image uploaded, stream file to disk & launch image
-    if (form.parts.image) {
-      const location = path.join('/tmp', uuid())
-      fs.mkdir(location, function (err) {
-        if (err) return errors.EINTERNAL(req, res, ctx, err)
-        const sink = fs.createWriteStream(location)
-        pump(form.parts.image, sink, function (err) {
-          if (err) return errors.EINTERNAL(req, res, ctx, err)
+    // TODO: make the parts a KV store, and store as files
+    if (form.parts.length) {
+      const source = form.parts[0].stream
+      const location = path.join('/tmp', uuid() + '.tgz')
+      const sink = fs.createWriteStream(location)
 
-          address = 'file://' + location
-          ctx.log.info('starting container for ' + address)
-          const id = sibyl.launch(address, opts)
-          if (id) ctx.send(200, { token: id })
-          else ctx.send(500, { message: 'Error booting image' })
-        })
+      pump(source, sink, function (err) {
+        if (err) return errors.EINTERNAL(req, res, ctx, err)
+
+        address = 'file://' + location
+        ctx.log.info('starting container for ' + address)
+        const id = sibyl.launch(address, opts)
+        if (id) ctx.send(200, { token: id })
+        else ctx.send(500, { message: 'Error booting image' })
       })
 
     // no image uploaded, launch container for other protocol

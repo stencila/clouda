@@ -68,7 +68,7 @@ function renderButton (state) {
     ? html`
       <a href=${sse.targetUrl}
         class="mh0 pa2 f5 ba bw1 bg-green b--green link white pointer"
-        data-no-routing
+        rel="noopener noreferrer"
         target="_blank">
         View
       </a>
