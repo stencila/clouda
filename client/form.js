@@ -29,20 +29,25 @@ function form (state, emitter) {
   validator.field('address', function (address) {
     var fileType = getFileType(address)
     state.form.selected = fileType
-
     var target = address.match(/[\w]+:\/{2}([\w.-_]+)/)
     if (target && target.length >= 2) target = target[1]
-
     if (!fileType) return new Error('Address should have a valid file type prefix')
     if (!target) return new Error('An address should have both a protocol and a target')
   })
 
   validator.field('token', function (data) {
-    // TODO: write validation code
+    if (!data || !data.length) return new Error('A token should be provided')
   })
 
   validator.file('image', { required: false }, function (data) {
-    // TODO: write validation code
+    if (data === null) return // allow file to be reset
+    if (!(data instanceof window.File)) return new Error('Please upload a file')
+    var extension = data.name.match(/\.[\w\d]+$/)
+    if (!extension ||
+      !extension.length ||
+      (extension[1] !== '.tgz' || extension[1] !== '.tar.gz')) {
+      return new Error('Expected a .tgz archive to be uploaded')
+    }
   })
 
   // Set a default value for the form during development
