@@ -2,10 +2,12 @@ const parseFormdata = require('parse-formdata')
 const cookie = require('cookie')
 const jwt = require('jsonwebtoken')
 const merry = require('merry')
+const uuid = require('uuid')
 const path = require('path')
 const pump = require('pump')
 const send = require('send')
 const url = require('url')
+const fs = require('fs')
 
 const Sibyl = require('./sibyl')
 
@@ -31,6 +33,10 @@ const errors = {
   EBETATOKENINVALID: function (req, res, ctx, err) {
     ctx.log.warn('Invalid token', req.url)
     res.write(`event: stderr\ndata: Invalid beta token\n\n`)
+  },
+  EINTERNAL: function (req, res, ctx, err) {
+    ctx.log.error(err)
+    ctx.send(500, { message: 'internal server error' })
   }
 }
 
@@ -43,27 +49,46 @@ const env = {
 const app = merry({ env: env })
 const sibyl = Sibyl(app.log)
 
-// Launch stream.
+// launch a container
 app.route('POST', '/~launch', function (req, res, ctx) {
   parseFormdata(req, function (err, form) {
     if (err) return errors.EFORMPARSE(req, res, ctx, err)
 
+    // validate input
     const token = form.fields.token
     if (token !== ctx.env.BETA_TOKEN) {
       return errors.EBETATOKENINVALID(req, res, ctx)
     }
 
-    const address = form.fields.address
+    // create opts to start the container
+    let address = form.fields.address
     const uri = url.parse(req.url, true)
-    ctx.log.info('starting container for ' + address)
-
     const opts = { mock: uri.query && uri.query.mock }
 
-    const id = sibyl.launch(address, opts)
-    if (id) {
-      ctx.send(200, { token: id })
+    // image uploaded, stream file to disk & launch image
+    if (form.parts.image) {
+      const location = path.join('/tmp', uuid())
+      fs.mkdir(location, function (err) {
+        if (err) return errors.EINTERNAL(req, res, ctx, err)
+        const sink = fs.createWriteStream(location)
+        pump(form.parts.image, sink, function (err) {
+          if (err) return errors.EINTERNAL(req, res, ctx, err)
+
+          address = 'file://' + location
+          ctx.log.info('starting container for ' + address)
+          const id = sibyl.launch(address, opts)
+          if (id) ctx.send(200, { token: id })
+          else ctx.send(500, { message: 'Error booting image' })
+        })
+      })
+
+    // no image uploaded, launch container for other protocol
     } else {
-      ctx.send(500, { message: 'Error booting image' })
+      // launch container, return id to client
+      ctx.log.info('starting container for ' + address)
+      const id = sibyl.launch(address, opts)
+      if (id) ctx.send(200, { token: id })
+      else ctx.send(500, { message: 'Error booting image' })
     }
   })
 })

@@ -124,7 +124,6 @@ function renderProviders (state, emit) {
       </b>
       ${providerNames.map(function (provider, i) {
         var className = 'f6 ml2 bn pa0 bg-white pointer link'
-        // if (i !== 0) className += ' ml2'
         if (provider.toLowerCase() === selected) className += ' black b'
         else className += ' light-silver'
         return html`
