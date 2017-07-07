@@ -64,7 +64,10 @@ FormElement.prototype._render = function (state, emit) {
       ${renderProviders(state, emit)}
       <span class="mt1 lh-copy">
         Enter the document address. Is this your first time? See the
-        <a class="bn black pointer link underline" href="http://sibyl.surge.sh/" data-no-routing target="_blank">docs</a>
+        <a class="bn black pointer link underline"
+          rel="noopener noreferrer"
+          href="http://sibyl.surge.sh/"
+          target="_blank">docs</a>
         or
         <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
           try an example
@@ -124,7 +127,6 @@ function renderProviders (state, emit) {
       </b>
       ${providerNames.map(function (provider, i) {
         var className = 'f6 ml2 bn pa0 bg-white pointer link'
-        // if (i !== 0) className += ' ml2'
         if (provider.toLowerCase() === selected) className += ' black b'
         else className += ' light-silver'
         return html`
