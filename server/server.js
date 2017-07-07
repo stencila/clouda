@@ -69,7 +69,7 @@ app.route('POST', '/~launch', function (req, res, ctx) {
     // TODO: make the parts a KV store, and store as files
     if (form.parts.length) {
       const source = form.parts[0].stream
-      const location = path.join('/tmp', uuid() + '.tgz')
+      const location = path.join('/tmp', uuid() + '.tar.gz')
       const sink = fs.createWriteStream(location)
 
       pump(source, sink, function (err) {
