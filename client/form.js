@@ -84,14 +84,13 @@ function form (state, emitter) {
     state.form.clock += 1
     emitter.emit('render')
   }
+}
 
-  function getFileType (str) {
-    if (typeof str !== 'string') return null
-    var type = str.split('://')
-    if (type.length !== 2) return
-    type = type[0]
-    var index = providerNames.indexOf(type)
-    if (index !== -1) return providerNames[index]
-    else return null
-  }
+function getFileType (str) {
+  var type = str.split('://')
+  if (type.length !== 2) return
+  type = type[0]
+  var index = providerNames.indexOf(type)
+  if (index !== -1) return providerNames[index]
+  else return null
 }
