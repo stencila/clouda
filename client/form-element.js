@@ -27,8 +27,8 @@ module.exports = FormElement
 
 function FormElement () {
   if (!(this instanceof FormElement)) return new FormElement()
-  this.clock = -1
   CacheComponent.call(this)
+  this.clock = -1
 }
 FormElement.prototype = Object.create(CacheComponent.prototype)
 
@@ -41,23 +41,50 @@ FormElement.prototype._update = function (state, emit) {
 
 FormElement.prototype._render = function (state, emit) {
   var formState = state.form
+
+  var addressField = html`
+    <input name="address" id="address" aria-label="address"
+      type="text" required
+      placeholder="For example, github://stencila/examples/diamonds"
+      title="Provider must be one of ${providerNames.join(', ')}"
+      class="w-100 w-70-ns mt2 pa2 f5 b--black br2"
+      pattern=".*"
+      value=${formState.values.address || ''}
+    />
+  `
+
+  var imageField = html`
+    <input name="image" id="image"
+      accept="application/x-compressed, application/x-gzip, application/x-tar"
+      type="file"
+      class=${uploadClass}
+    />
+  `
+
+  var tokenField = html`
+    <input name="token"aria-label="token"
+      type="text" required
+      class="mt2 pa2 f5 b--black br2"
+      value=${formState.values.token || ''}
+      placeholder="Token"
+    />
+  `
   return html`
-    <form class="flex flex-column align-right" onsubmit=${onsubmit}>
+    <form name="create" id="create"
+      class="flex flex-column align-right"
+      onsubmit=${onsubmit}
+      oninput=${onchange}
+      onchange=${onchange}
+    >
       <label class="f4 b" for="address">
         Document address
       </label>
       <div class="flex flex-column flex-row-ns">
-        <input name="address" id="address" type="text" aria-label="address"
-          class="w-100 w-70-ns mt2 pa2 f5 b--black br2"
-          value=${formState.values.address}
-          onchange=${onchange}
-          onkeyup=${onchange}
-          placeholder="For example, github://stencila/examples/diamonds" />
-        <input name="image" id="image" type="file"
-          onchange=${onchange}
-          class=${uploadClass}/>
+        ${addressField}
+        ${imageField}
         <label for="image"
-          class="w-100 w-30-ns ml2-ns mt2 br2 ph2-ns pv2 pointer white bg-black flex justify-center">
+          class="w-100 w-30-ns ml2-ns mt2 br2 ph2-ns pv2 pointer white bg-black flex justify-center"
+        >
           Upload document
         </label>
       </div>
@@ -67,54 +94,53 @@ FormElement.prototype._render = function (state, emit) {
         <a class="bn black pointer link underline"
           rel="noopener noreferrer"
           href="http://sibyl.surge.sh/"
-          target="_blank">docs</a>
+          target="_blank"
+        >docs</a>
         or
-        <button class="bn bg-white pointer pa0 ma0 link underline" onclick=${tryExample}>
+        <button type="button"
+          class="bn bg-white pointer pa0 ma0 link underline"
+          onclick=${tryExample}
+        >
           try an example
         </button>
       </span>
       <label class="f4 b mt3" for="token">
         Beta token
       </label>
-      <input name="token" type="text" aria-label="token"
-        class="mt2 pa2 f5 b--black br2"
-        value=${formState.values.token}
-        onchange=${onchange}
-        onkeyup=${onchange}
-        placeholder="Token">
+      ${tokenField}
       <span class="mt2 lh-copy">
         During the beta, you need to provide a beta token.
       </span>
-      ${formState.valid
-        ? html`<input type="submit" aria-label="open"
-            class="mw4 mt3 mh0 bg-black white f5 bn br2 pa2 link pointer"
-            value="Open">`
-        : html`<input type="submit" aria-label="open"
-            disabled
-            class="mw4 mt3 mh0 bg-silver white f5 bn br2 pa2 link"
-            value="Open">`
-      }
+      <input type="submit" aria-label="open"
+        class="mw4 mt3 mh0 bg-black white f5 bn br2 pa2 link pointer"
+        value="Open"
+      />
     </form>
   `
 
   function onchange (e) {
-    if (e.key === 'Enter') return onsubmit()
+    if (e.keyCode === 'Enter') return
     var event = {
       key: e.target.name,
-      value: e.target.type === 'file' ? e.target.files[0] : e.target.value
+      value: e.target.type === 'file' ? e.target.files[0] : e.target.value,
+      type: e.target.type
     }
     emit(state.events.FORM_UPDATE, event)
   }
 
   function onsubmit (e) {
-    if (e) e.preventDefault()
-    // TODO: replace with full on form validation
-    emit(state.events.FORM_SUBMIT)
+    e.preventDefault()
+    if (e.target.checkValidity() === false) return false
+    var data = new window.FormData(e.target)
+    emit(state.events.FORM_SUBMIT, data)
   }
 
   function tryExample (e) {
     e.preventDefault()
-    emit(state.events.FORM_SET_EXAMPLE_DOCUMENT)
+    emit(state.events.FORM_SET, {
+      key: 'address',
+      value: 'github://stencila/examples/diamonds'
+    })
   }
 }
 
@@ -130,13 +156,13 @@ function renderProviders (state, emit) {
         if (provider.toLowerCase() === selected) className += ' black b'
         else className += ' light-silver'
         return html`
-          <button class=${className} onclick=${onclick}>
+          <button type="button" class=${className} onclick=${onclick}>
             ${provider}
           </button>
         `
         function onclick (e) {
           e.preventDefault()
-          emit(state.events.FORM_UPDATE, {
+          emit(state.events.FORM_SET, {
             key: 'address',
             value: provider.toLowerCase() + '://'
           })
