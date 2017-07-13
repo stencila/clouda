@@ -45,10 +45,11 @@ FormElement.prototype._render = function (state, emit) {
   var addressField = html`
     <input name="address" id="address" aria-label="address"
       type="text" required
+      autofocus
       placeholder="For example, github://stencila/examples/diamonds"
-      title="Provider must be one of ${providerNames.join(', ')}"
+      title="Must use a valid provider and using a valid formatting, e.g. 'github://stencila/examples/diamonds'"
       class="w-100 w-70-ns mt2 pa2 f5 b--black br2"
-      pattern=".*"
+      pattern="^[a-zA-Z]+://[a-zA-Z.-_]+$"
       value=${formState.values.address || ''}
     />
   `
