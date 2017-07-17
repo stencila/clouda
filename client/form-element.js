@@ -63,7 +63,7 @@ FormElement.prototype._render = function (state, emit) {
   `
 
   var tokenField = html`
-    <input name="token"aria-label="token"
+    <input name="token" aria-label="token"
       type="text" required
       class="mt2 pa2 f5 b--black br2"
       value=${formState.values.token || ''}
