@@ -4,11 +4,11 @@ function embed (state, emitter) {
   state.events.EMBED_UPDATE = 'embed:update'
 
   state.embed = {
-    frozen: false,
-    url: createUrl(false)
+    frozen: false
   }
 
   emitter.on('DOMContentLoaded', function () {
+    state.embed.url = createUrl(false)
     emitter.on(state.events.EMBED_UPDATE, function (value) {
       state.embed.frozen = value
       state.embed.url = createUrl(value)

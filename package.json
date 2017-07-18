@@ -4,17 +4,21 @@
   "description": "Launch Sibyl containers",
   "main": "index.js",
   "scripts": {
-    "test": "standard"
+    "build": "bankai build client/index.js",
+    "test": "standard",
+    "start": "node .",
+    "watch": "bankai build -w client/index.js dist/"
   },
   "repository": "stencila/open",
   "license": "Apache-2.0",
   "devDependencies": {
+    "bankai": "^8.1.1",
     "standard": "^10.0.2"
   },
   "dependencies": {
     "array-lru": "^1.1.1",
     "cache-component": "^5.2.0",
-    "choo": "^5.6.2",
+    "choo": "^6.0.0-3",
     "choo-expose": "^1.2.1",
     "choo-log": "^7.0.1",
     "cookie": "^0.3.1",
@@ -26,6 +30,7 @@
     "send": "^0.15.3",
     "shallowequal": "^1.0.2",
     "sheetify": "^6.1.0",
+    "tachyons": "^4.7.4",
     "uuid": "^3.1.0",
     "xhr": "^2.4.0"
   }

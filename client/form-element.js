@@ -84,7 +84,7 @@ FormElement.prototype._render = function (state, emit) {
         ${addressField}
         ${imageField}
         <label for="image"
-          class="w-100 w-30-ns ml2-ns mt2 br2 ph2-ns pv2 pointer white bg-black flex justify-center"
+          class="w-100 w-30-ns ml2-l mt2 br2 ph2-ns pv2 pointer white bg-black flex justify-center"
         >
           Upload document
         </label>
