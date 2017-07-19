@@ -52,14 +52,14 @@ Sibyl.prototype.open = function (address, opts) {
           let type = match[1]
           let data = match[2]
           if (type === 'STEP') {
-            self.log.debug('SSE: sending step')
+            self.log.debug('SSE: sending step', data)
             sink.write(`event: step\ndata: ${data}\n\n`)
           } else if (type === 'IMAGE') {
-            self.log.debug('SSE: sending image')
+            self.log.debug('SSE: sending image', data)
             sink.write(`event: image\ndata: ${data}\n\n`)
           } else if (type === 'GOTO') {
             const token = jwt.sign({ url: data }, process.env.TOKEN_SECRET, { expiresIn: '12h' })
-            self.log.debug('SSE: sending stdout goto')
+            self.log.debug('SSE: sending stdout goto', token)
             sink.write(`event: goto\ndata: ${token}\n\n`)
           }
         } else {
@@ -72,7 +72,7 @@ Sibyl.prototype.open = function (address, opts) {
 
   function onExit (data) {
     if (closed) return
-    self.log.debug('SSE: sending end event')
+    self.log.debug('SSE: sending end event', data)
     sink.write(`event: end\ndata: ${data}\n\n`)
   }
 }

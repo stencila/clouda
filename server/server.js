@@ -149,6 +149,7 @@ app.route('GET', '/static/stencila/*', function (req, res, ctx) {
   const pathname = url.parse(req.url).pathname
   const source = send(req, path.join('node_modules/stencila/build/', pathname.substring(17)))
   pump(source, res, function (err) {
+    ctx.log.debug('ending stream', err)
     if (err) errors.EPIPE(req, res, ctx, err)
   })
 })
