@@ -31,6 +31,7 @@
     "send": "^0.15.3",
     "shallowequal": "^1.0.2",
     "sheetify": "^6.1.0",
+    "stencila-sibyl": "^0.26.0",
     "tachyons": "^4.7.4",
     "uuid": "^3.1.0",
     "xhr": "^2.4.0"

@@ -77,7 +77,7 @@ app.route('POST', '/~launch', function (req, res, ctx) {
 
         address = 'file://' + location
         ctx.log.info('starting container for ' + address)
-        const id = sibyl.launch(address, opts)
+        const id = sibyl.open(address, opts)
         if (id) ctx.send(200, { token: id })
         else ctx.send(500, { message: 'Error booting image' })
       })

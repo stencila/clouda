@@ -1,4 +1,4 @@
-const spawn = require('child_process').spawn
+const sibyl = require('stencila-sibyl')
 const alru = require('array-lru')
 const jwt = require('jsonwebtoken')
 const stream = require('stream')
@@ -25,26 +25,23 @@ Sibyl.prototype.get = function (id) {
 }
 
 // TODO: make sure the tokens are validated
-Sibyl.prototype.launch = function (address, opts) {
+Sibyl.prototype.open = function (address, opts) {
   opts = opts || {}
 
   var closed = false
   const self = this
 
-  const mock = opts.mock ? '--mock' : ''
-  const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
   const pts = new stream.PassThrough()
 
-  sibyl.stdout.on('data', onStdout)
-  sibyl.stderr.on('data', onStderr)
-  sibyl.on('exit', onExit)
+  sibyl('open', address, pts, onExit)
+  pts.on('data', parseMessage)
 
   const id = uuid()
   lru.set(id, pts)
 
   return id
 
-  function onStdout (data) {
+  function parseMessage (data) {
     if (closed) return
     for (let line of data.toString().split('\n')) {
       if (line.length) {
@@ -68,14 +65,6 @@ Sibyl.prototype.launch = function (address, opts) {
           pts.write(`event: stdout\ndata: ${line}\n\n`)
         }
       }
-    }
-  }
-
-  function onStderr (data) {
-    if (closed) return
-    for (let line of data.toString().split('\n')) {
-      self.log.debug('SSE: sending stderr data')
-      pts.write(`event: stderr\ndata: ${line}\n\n`)
     }
   }
 
