@@ -70,8 +70,9 @@ Sibyl.prototype.open = function (address, opts) {
     }
   }
 
-  function onExit (data) {
+  function onExit (err, data) {
     if (closed) return
+    if (err) return sink.emit('error', err)
     self.log.debug('SSE: sending end event', data)
     sink.write(`event: end\ndata: ${data}\n\n`)
   }
