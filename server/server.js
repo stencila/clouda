@@ -43,10 +43,13 @@ const errors = {
 const env = {
   PORT: 3000,            // Port for the server to listen on
   TOKEN_SECRET: String,  // JWT token secret should be set as an environment variable
+  DEBUG: '',             // Enable debug logs
   BETA_TOKEN: 'platypus' // Random client token, required during the beta
 }
 
-const app = merry({ env: env })
+var opts = { env: env }
+if (process.env.DEBUG) opts.logLevel = 'debug'
+const app = merry(opts)
 const sibyl = Sibyl(app.log)
 
 // launch a container

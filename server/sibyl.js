@@ -21,6 +21,7 @@ function Sibyl (log) {
 }
 
 Sibyl.prototype.get = function (id) {
+  this.log.debug('connecting to stream', id)
   return lru.get(id)
 }
 
@@ -31,13 +32,14 @@ Sibyl.prototype.open = function (address, opts) {
   var closed = false
   const self = this
 
-  const pts = new stream.PassThrough()
+  const source = new stream.PassThrough()
+  const sink = new stream.PassThrough()
 
-  sibyl('open', address, pts, onExit)
-  pts.on('data', parseMessage)
+  sibyl('open', address, source, onExit)
+  source.on('data', parseMessage)
 
   const id = uuid()
-  lru.set(id, pts)
+  lru.set(id, sink)
 
   return id
 
@@ -51,18 +53,18 @@ Sibyl.prototype.open = function (address, opts) {
           let data = match[2]
           if (type === 'STEP') {
             self.log.debug('SSE: sending step')
-            pts.write(`event: step\ndata: ${data}\n\n`)
+            sink.write(`event: step\ndata: ${data}\n\n`)
           } else if (type === 'IMAGE') {
             self.log.debug('SSE: sending image')
-            pts.write(`event: image\ndata: ${data}\n\n`)
+            sink.write(`event: image\ndata: ${data}\n\n`)
           } else if (type === 'GOTO') {
             const token = jwt.sign({ url: data }, process.env.TOKEN_SECRET, { expiresIn: '12h' })
             self.log.debug('SSE: sending stdout goto')
-            pts.write(`event: goto\ndata: ${token}\n\n`)
+            sink.write(`event: goto\ndata: ${token}\n\n`)
           }
         } else {
-          self.log.debug('SSE: sending stdout data')
-          pts.write(`event: stdout\ndata: ${line}\n\n`)
+          self.log.debug('SSE: sending stdout data', line)
+          sink.write(`event: stdout\ndata: ${line}\n\n`)
         }
       }
     }
@@ -71,6 +73,6 @@ Sibyl.prototype.open = function (address, opts) {
   function onExit (data) {
     if (closed) return
     self.log.debug('SSE: sending end event')
-    pts.write(`event: end\ndata: ${data}\n\n`)
+    sink.write(`event: end\ndata: ${data}\n\n`)
   }
 }
