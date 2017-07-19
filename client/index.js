@@ -15,4 +15,6 @@ app.use(require('./embed'))   // markdown embed logic
 
 app.route('/', require('./view-main'))
 app.route('/*', require('./view-main'))
-app.mount('body')
+
+if (!module.parent) app.mount('body')
+else module.exports = app
