@@ -6,13 +6,14 @@
   "scripts": {
     "build": "bankai build client/index.js",
     "test": "standard",
-    "start": "node .",
+    "start": "TOKEN_SECRET=platypus PORT=3000 nodemon -i dist/ -i client/ -i bundles/ server/server | merry",
     "watch": "bankai build -w client/index.js dist/"
   },
   "repository": "stencila/open",
   "license": "Apache-2.0",
   "devDependencies": {
     "bankai": "^8.1.1",
+    "nodemon": "^1.11.0",
     "standard": "^10.0.2"
   },
   "dependencies": {
