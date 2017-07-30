@@ -1,7 +1,7 @@
-# open
+# `stencila/server` : Stencila in the cloud
 
 [![experimental](https://img.shields.io/badge/stability-experimental-orange.svg)](http://github.com/badges/stability-badges)
-[![Build status](https://travis-ci.org/stencila/open.svg?branch=master)](https://travis-ci.org/stencila/open)
+[![Build status](https://travis-ci.org/stencila/server.svg?branch=master)](https://travis-ci.org/stencila/server)
 [![Community](https://img.shields.io/badge/join-community-green.svg)](https://community.stenci.la)
 [![Chat](https://badges.gitter.im/stencila/stencila.svg)](https://gitter.im/stencila/stencila)
 
@@ -11,8 +11,8 @@ Launch Stencila documents.
 Quickstart:
 
 ```sh
-git clone https://github.com/stencila/open.git
-cd open
+git clone https://github.com/stencila/server.git
+cd server
 npm install
 npm run watch
 npm start
@@ -32,7 +32,10 @@ Build client for production       | `npm run build`       | `make build`
 Run server in production          | `npm serve`           | `make serve`
 
 ## See Also
-- [stencila/sibyl](https://github.com/stencila/sibyl)
+
+- [stencila/cli](https://github.com/stencila/cli)
+- [stencila/desktop](https://github.com/stencila/desktop)
 
 ## License
+
 Apache-2.0
