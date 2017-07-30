@@ -43,10 +43,13 @@ const errors = {
 const env = {
   PORT: 3000,            // Port for the server to listen on
   TOKEN_SECRET: String,  // JWT token secret should be set as an environment variable
+  DEBUG: '',             // Enable debug logs
   BETA_TOKEN: 'platypus' // Random client token, required during the beta
 }
 
-const app = merry({ env: env })
+var opts = { env: env }
+if (process.env.DEBUG) opts.logLevel = 'debug'
+const app = merry(opts)
 const sibyl = Sibyl(app.log)
 
 // launch a container
@@ -77,7 +80,7 @@ app.route('POST', '/~launch', function (req, res, ctx) {
 
         address = 'file://' + location
         ctx.log.info('starting container for ' + address)
-        const id = sibyl.launch(address, opts)
+        const id = sibyl.open(address, opts)
         if (id) ctx.send(200, { token: id })
         else ctx.send(500, { message: 'Error booting image' })
       })
@@ -146,6 +149,7 @@ app.route('GET', '/static/stencila/*', function (req, res, ctx) {
   const pathname = url.parse(req.url).pathname
   const source = send(req, path.join('node_modules/stencila/build/', pathname.substring(17)))
   pump(source, res, function (err) {
+    ctx.log.debug('ending stream', err)
     if (err) errors.EPIPE(req, res, ctx, err)
   })
 })

@@ -1,4 +1,4 @@
-const spawn = require('child_process').spawn
+const sibyl = require('stencila-sibyl')
 const alru = require('array-lru')
 const jwt = require('jsonwebtoken')
 const stream = require('stream')
@@ -21,30 +21,29 @@ function Sibyl (log) {
 }
 
 Sibyl.prototype.get = function (id) {
+  this.log.debug('connecting to stream', id)
   return lru.get(id)
 }
 
 // TODO: make sure the tokens are validated
-Sibyl.prototype.launch = function (address, opts) {
+Sibyl.prototype.open = function (address, opts) {
   opts = opts || {}
 
   var closed = false
   const self = this
 
-  const mock = opts.mock ? '--mock' : ''
-  const sibyl = spawn('./sibyl.sh', ['launch', address, mock])
-  const pts = new stream.PassThrough()
+  const source = new stream.PassThrough()
+  const sink = new stream.PassThrough()
 
-  sibyl.stdout.on('data', onStdout)
-  sibyl.stderr.on('data', onStderr)
-  sibyl.on('exit', onExit)
+  sibyl('open', address, source, onExit)
+  source.on('data', parseMessage)
 
   const id = uuid()
-  lru.set(id, pts)
+  lru.set(id, sink)
 
   return id
 
-  function onStdout (data) {
+  function parseMessage (data) {
     if (closed) return
     for (let line of data.toString().split('\n')) {
       if (line.length) {
@@ -53,35 +52,28 @@ Sibyl.prototype.launch = function (address, opts) {
           let type = match[1]
           let data = match[2]
           if (type === 'STEP') {
-            self.log.debug('SSE: sending step')
-            pts.write(`event: step\ndata: ${data}\n\n`)
+            self.log.debug('SSE: sending step', data)
+            sink.write(`event: step\ndata: ${data}\n\n`)
           } else if (type === 'IMAGE') {
-            self.log.debug('SSE: sending image')
-            pts.write(`event: image\ndata: ${data}\n\n`)
+            self.log.debug('SSE: sending image', data)
+            sink.write(`event: image\ndata: ${data}\n\n`)
           } else if (type === 'GOTO') {
             const token = jwt.sign({ url: data }, process.env.TOKEN_SECRET, { expiresIn: '12h' })
-            self.log.debug('SSE: sending stdout goto')
-            pts.write(`event: goto\ndata: ${token}\n\n`)
+            self.log.debug('SSE: sending stdout goto', token)
+            sink.write(`event: goto\ndata: ${token}\n\n`)
           }
         } else {
-          self.log.debug('SSE: sending stdout data')
-          pts.write(`event: stdout\ndata: ${line}\n\n`)
+          self.log.debug('SSE: sending stdout data', line)
+          sink.write(`event: stdout\ndata: ${line}\n\n`)
         }
       }
     }
   }
 
-  function onStderr (data) {
+  function onExit (err, data) {
     if (closed) return
-    for (let line of data.toString().split('\n')) {
-      self.log.debug('SSE: sending stderr data')
-      pts.write(`event: stderr\ndata: ${line}\n\n`)
-    }
-  }
-
-  function onExit (data) {
-    if (closed) return
-    self.log.debug('SSE: sending end event')
-    pts.write(`event: end\ndata: ${data}\n\n`)
+    if (err) return sink.emit('error', err)
+    self.log.debug('SSE: sending end event', data)
+    sink.write(`event: end\ndata: ${data}\n\n`)
   }
 }
