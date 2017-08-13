@@ -1,7 +1,7 @@
 {
-  "name": "sibyl-open",
-  "version": "1.0.0",
-  "description": "Launch Sibyl containers",
+  "name": "stencila-cloud",
+  "version": "0.27",
+  "description": "Stencila in the cloud",
   "main": "index.js",
   "scripts": {
     "build": "bankai build client/index.js",
@@ -10,7 +10,7 @@
     "start": "TOKEN_SECRET=platypus PORT=3000 nodemon -i dist/ -i client/ -i bundles/ server/server | merry",
     "watch": "bankai build -w client/index.js dist/"
   },
-  "repository": "stencila/open",
+  "repository": "stencila/cloud",
   "license": "Apache-2.0",
   "devDependencies": {
     "bankai": "^8.1.1",
