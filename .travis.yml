@@ -1,0 +1,16 @@
+language: node_js
+
+node_js:
+  - 8
+
+services:
+  docker
+
+cache:
+  directories:
+    - node_modules
+
+script:
+  - make setup
+  - make lint
+  - make build
