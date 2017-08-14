@@ -1,13 +1,21 @@
 {
   "name": "stencila-cloud",
-  "version": "0.27",
+  "version": "0.27.0",
   "description": "Stencila in the cloud",
   "scripts": {
+    "lint": "standard",
+    "start": "nodemon serve.js | merry",
+    "serve": "node serve.js"
   },
   "repository": "https://github.com/stencila/cloud",
   "license": "Apache-2.0",
   "devDependencies": {
+    "nodemon": "^1.11.0",
+    "standard": "^10.0.3"
   },
   "dependencies": {
+    "kubernetes-client": "^3.14.0",
+    "macaroons.js": "^0.3.8",
+    "merry": "^5.4.0"
   }
 }
