@@ -16,5 +16,8 @@ test:
 build:
 	npm run build
 
+image:
+	docker build . --tag stencila/cloud
+
 serve:
 	npm run serve

@@ -2,40 +2,12 @@
   "name": "stencila-cloud",
   "version": "0.27",
   "description": "Stencila in the cloud",
-  "main": "index.js",
   "scripts": {
-    "build": "bankai build client/index.js",
-    "debug": "DEBUG=* TOKEN_SECRET=platypus PORT=3000 node --inspect -r pino-debug server/server | merry",
-    "test": "standard",
-    "start": "TOKEN_SECRET=platypus PORT=3000 nodemon -i dist/ -i client/ -i bundles/ server/server | merry",
-    "watch": "bankai build -w client/index.js dist/"
   },
-  "repository": "stencila/cloud",
+  "repository": "https://github.com/stencila/cloud",
   "license": "Apache-2.0",
   "devDependencies": {
-    "bankai": "^8.1.1",
-    "nodemon": "^1.11.0",
-    "pino-debug": "^1.0.3",
-    "standard": "^10.0.2"
   },
   "dependencies": {
-    "array-lru": "^1.1.1",
-    "cache-component": "^5.2.0",
-    "choo": "^6.0.0-3",
-    "choo-expose": "^1.2.1",
-    "choo-log": "^7.0.1",
-    "cookie": "^0.3.1",
-    "fast-json-parse": "^1.0.2",
-    "jsonwebtoken": "^7.4.1",
-    "merry": "^5.3.3",
-    "parse-formdata": "^1.0.2",
-    "pump": "^1.0.2",
-    "send": "^0.15.3",
-    "shallowequal": "^1.0.2",
-    "sheetify": "^6.1.0",
-    "stencila-sibyl": "^0.26.0",
-    "tachyons": "^4.7.4",
-    "uuid": "^3.1.0",
-    "xhr": "^2.4.0"
   }
 }

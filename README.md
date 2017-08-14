@@ -5,9 +5,9 @@
 [![Community](https://img.shields.io/badge/join-community-green.svg)](https://community.stenci.la)
 [![Chat](https://badges.gitter.im/stencila/stencila.svg)](https://gitter.im/stencila/stencila)
 
-### Purpose
+A Stencila `Host` which creates execution `Contexts` and other resources within Docker containers on a Kubernetes cluster. 
 
-A Stencila `Host` which creates execution `Contexts` and other resources within Docker containers on a Kubernetes cluster.
+**This repo is undergoing a major refactoring to integrate it better with other parts of the Stencila platform. Lots of things are broken but we're working on it!**
 
 ### Install
 
