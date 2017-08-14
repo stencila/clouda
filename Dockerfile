@@ -1,6 +1,6 @@
 # Container for running Sibyl's Node.js server
 
-FROM node:6
+FROM node:8
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV NPM_CONFIG_LOGLEVEL warn
@@ -9,40 +9,36 @@ ENV NPM_CONFIG_LOGLEVEL warn
 # `init-system-helpers` etc are needed for docker
 RUN apt-get update \
  && apt-get install -y \
- 		net-tools jq  \
  		init-system-helpers iptables libapparmor1 \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/
 
-# Install docker
+# Install docker to have a docker client for building Docker images
 RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_17.03.0~ce-0~debian-jessie_amd64.deb \
  && dpkg -i docker.deb \
  && rm docker.deb
 
-# Install kubctrl
+# Install kubctrl for accessing the Kubernetes API
+# See https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
 RUN curl -L -o /bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.6.4/bin/linux/amd64/kubectl \
  && chmod +x /bin/kubectl
 
-# Install gcloud
+# Install gcloud for 
 RUN curl -sSL https://sdk.cloud.google.com | bash
 ENV PATH $PATH:/root/google-cloud-sdk/bin
-
-# Install dat
-RUN npm install dat --global
 
 RUN mkdir /usr/app 
 WORKDIR /usr/app
 
-# Just copy files needed for `npm install` so that it
-# is not re-run when an unrelated file (e.g. `sibyl.sh`) is changed
+# Just copy `package.json` for `npm install` so that it
+# is not re-run when an unrelated file is changed
 COPY package.json .
 RUN npm install
 
-# Now copy over everything and do build
+# Now copy over everything
 COPY . .
-RUN npm run build
 
-# Expose server.js port
-EXPOSE 3000
+# Expose HostHttpServer.js port
+EXPOSE 2000
 
 CMD ["bash", "cmd.sh"]
