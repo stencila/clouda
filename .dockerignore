@@ -1,2 +1,7 @@
-.git
-node_modules
+**
+!Dockerfile
+!cmd.sh
+!package.json
+!Host.js
+!HostHttpServer.js
+!serve.js
