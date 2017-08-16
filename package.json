@@ -4,8 +4,7 @@
   "description": "Stencila in the cloud",
   "scripts": {
     "lint": "standard",
-    "start": "nodemon serve.js | merry",
-    "serve": "node serve.js"
+    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then nodemon serve.js | merry; else node serve.js; fi"
   },
   "repository": "https://github.com/stencila/cloud",
   "license": "Apache-2.0",
@@ -14,8 +13,12 @@
     "standard": "^10.0.3"
   },
   "dependencies": {
+    "body": "^5.1.0",
+    "cookie": "^0.3.1",
+    "dockerode": "^2.5.0",
     "kubernetes-client": "^3.14.0",
-    "macaroons.js": "^0.3.8",
-    "merry": "^5.4.0"
+    "merry": "^5.4.0",
+    "pino": "^4.7.1",
+    "random-port": "^0.1.0"
   }
 }
