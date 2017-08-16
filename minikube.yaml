@@ -6,45 +6,40 @@
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: sibyl
+  name: stencila-cloud
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: sibyl
+        app: stencila-cloud
     spec:
       containers:
 
-        # Nginx web server
-        - name: sibyl-nginx
-          image: nginx
-          ports:
-            - containerPort: 80
-
-        # Sibyl app server
-        - name: sibyl-server
-          image: stencila/sibyl-server
+        # Stencila Cloud server
+        - name: server-container
+          image: stencila/cloud
           # Use  `IfNotPresent` so that Kubernetes does not pull each time and
-          # instead uses the latest build done outside of the container
-          # (see README)
-          imagePullPolicy: IfNotPresent 
+          # instead uses the latest build (see README)
+          imagePullPolicy: IfNotPresent
           env:
+            - name: REDEPLOY_DATETIME
+              value: REDEPLOY_DATETIME_
+            - name: TOKEN_KEY
+              value: 'in production this should actually be a secret'
             - name: DOCKER_HOST
               value: tcp://127.0.0.1:2375
-            - name: SIBYL_CLUSTER
-              value: 'true'
-            - name: SIBYL_REGISTRY
+            - name: DOCKER_REGISTRY
               value: localhost:5000
           ports:
-            - containerPort: 3000
+            - containerPort: 2000
 
         # Use Docker-in-Docker (dind) to build Docker images
         # An alternative is to use the Docker daemeon that is actually present on
         # the node. But doing so has security implications. This isn't perfec
         # but it seems to be better.
         # See the discussion at https://github.com/kubernetes/kubernetes/issues/1806
-        - name: sibyl-docker
+        - name: docker-container
           image: docker:dind
           securityContext:
             privileged: true
@@ -53,27 +48,27 @@ spec:
 
         # Use a Docker Registry in the same pod because otherwise we need
         # to configure TLS 
-        - name: sibyl-registry
+        - name: registry-container
           image: registry:2
           ports:
             - containerPort: 5000
 
 ---
 
-# Expose the Sibyl server
+# Expose the Stencila Cloud server
 
 kind: Service
 apiVersion: v1
 metadata:
-  name: sibyl-server
+  name: stencila-cloud-server
 spec:
   type: NodePort
   selector:
-    app: sibyl
+    app: stencila-cloud
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 3000
+      targetPort: 2000
 
 
 ---
@@ -85,11 +80,11 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: sibyl-docker
+  name: stencila-cloud-docker
 spec:
   type: NodePort
   selector:
-    app: sibyl
+    app: stencila-cloud
   ports:
     - protocol: TCP
       port: 2375
@@ -98,20 +93,17 @@ spec:
 ---
 
 # Expose the Docker registry outside. This is to allow kubectl to pull
-# images built by sibyl
-# Need to run:
-# kubectl port-forward $(kubectl get po -n | grep sibyl-registry | awk '{print $1;}') 5000:5000
+# images built by within this cluster. Need to run:
+#   kubectl port-forward $(kubectl get pods -n | grep stencila-cloud-registry | awk '{print $1;}') 5000:5000
 
 kind: Service
 apiVersion: v1
 metadata:
-  name: sibyl-registry
-  labels:
-    app: sibyl
+  name: stencila-cloud-registry
 spec:
   type: NodePort
   selector:
-    app: sibyl
+    app: stencila-cloud
   ports:
     - protocol: TCP
       port: 5000

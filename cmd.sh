@@ -12,4 +12,4 @@ then
 fi
 
 # Serve host
-npm run serve
+npm start

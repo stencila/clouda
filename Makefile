@@ -1,23 +1,23 @@
-all: setup test build
+all: setup lint build
 
 
 setup:
 	npm install
 
-watch:
-	npm run watch
+lint:
+	npm run lint
 
 run:
-	npm start
+	NODE_ENV='development' npm start
 
-test:
-	npm test
+run-prod:
+	NODE_ENV='production' npm start
 
 build:
-	npm run build
-
-image:
 	docker build . --tag stencila/cloud
 
-serve:
-	npm run serve
+minikube:
+	# Build the Docker image within Minikube
+	eval $$(minikube docker-env) && docker build . --tag stencila/cloud
+	# Force a redeploy of container(s) by changing env vars
+	sed -r "s!REDEPLOY_DATETIME_.*!REDEPLOY_DATETIME_$$(date --iso=seconds)!g" minikube.yaml | kubectl apply -f -
