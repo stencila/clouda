@@ -30,12 +30,17 @@ const k8s = new kubernetes.Core({
 
 /**
  * Implements the Stencila Host API using a Kubernetes cluster
+ *
+ * We use signed JSON objects, stored as Base64 encoded cookies on the client,
+ * for persisting session state across calls. We do not use the Jason Web Tokens (JWT) for this
+ * as they have security vulnerabilities. We do not us Macroons for this as they are focussed
+ * on authorizing capabilities instead of storing state.
  */
 class Host {
   /**
    * Sign a session
    *
-   * Generates a HMAC-SHA256 signature of the session that is used for verification.
+   * Generates a HMAC-SHA256 signature of the session object that is used for verification.
    *
    * @param  {object} session The session object
    * @return {string}         The session signature (a hex digest)
@@ -56,13 +61,11 @@ class Host {
         start: new Date()
       }
     }
-    pino.info({ session: session }, 'checkin')
     return session
   }
 
   // Checkout a session by creating a token for it
   checkout (session) {
-    pino.info({ session: session }, 'checkout')
     const object = {
       session: session,
       signature: this.sign(session)
@@ -74,7 +77,8 @@ class Host {
 
   spawn (cb) {
     if (NODE_ENV === 'development') {
-      // During development use Docker to run a new container
+      // During development use Docker to emulate a pod by running
+      // a new container
       randomPort((port) => {
         const options = {
           Image: STENCILA_IMAGE,
@@ -90,8 +94,12 @@ class Host {
         }
         docker.createContainer(options, (err, container) => {
           if (err) return cb(err)
+
+          pino.info({ pod: container.id }, 'created')
           container.start((err) => {
             if (err) return cb(err)
+
+            pino.info({ pod: container.id }, 'started')
             cb(null, `http://127.0.0.1:${port}`)
           })
         })
@@ -118,15 +126,19 @@ class Host {
         }
       }}, (err, pod) => {
         if (err) return cb(err)
-        const awaitPod = function (cb) {
+
+        pino.info({ pod: pod.metadata.name }, 'created')
+        const awaitPod = function () {
           k8s.ns.pods(name).get((err, pod) => {
             if (err) return cb(err)
 
             if (pod.status.phase === 'Running') {
+              pino.info({ pod: pod.metadata.name }, 'started')
               cb(null, `http://${pod.status.podIP}:${port}`)
-            } else setTimeout(() => awaitPod(cb), 300)
+            } else setTimeout(awaitPod, 300)
           })
         }
+        awaitPod()
       })
     }
   }
