@@ -1,4 +1,4 @@
-# Container for running Sibyl's Node.js server
+# The stencila/cloud Docker container image
 
 FROM node:8
 
@@ -22,10 +22,6 @@ RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/poo
 # See https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
 RUN curl -L -o /bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.6.4/bin/linux/amd64/kubectl \
  && chmod +x /bin/kubectl
-
-# Install gcloud for pushing images to the Google container registry
-RUN curl -sSL https://sdk.cloud.google.com | bash
-ENV PATH $PATH:/root/google-cloud-sdk/bin
 
 RUN mkdir /usr/app 
 WORKDIR /usr/app
