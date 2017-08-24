@@ -97,27 +97,18 @@ class Host {
     }
   }
 
-  pod (session, cb) {
-    if (session.pod) cb(null, session.pod)
-    else {
-      this.spawn((err, pod) => {
-        if (err) return cb(err)
-
-        session.pod = pod
-        cb(null, pod)
-      })
-    }
-  }
-
   manifest (session, cb) {
-    // Treat this like a login and remove the session
-    // Another option would be to check id the pod is still active and reuseit
-    if (session.pod) {
-      // TODO: kill the pod if it's still around
-      pino.info('removing pod')
-      session.pod = null
-    }
-    this.pod(session, (err, pod) => {
+    ((cb) => {
+      if (session.pod) cb(null, session.pod)
+      else {
+        this.spawn((err, pod) => {
+          if (err) return cb(err)
+
+          session.pod = pod
+          cb(null, pod)
+        })
+      }
+    })((err, pod) => {
       if (err) return cb(err)
 
       request({
