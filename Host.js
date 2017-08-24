@@ -8,15 +8,7 @@ const request = require('retry-request')
 const HostHttpServer = require('./HostHttpServer')
 
 // Configuration settings
-const NODE_ENV = process.env.NODE_ENV
-
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/alpha'
-
-var TOKEN_SECRET = process.env.TOKEN_SECRET
-if (!TOKEN_SECRET) {
-  if (NODE_ENV === 'development') TOKEN_SECRET = 'a super unsecet key'
-  else throw Error('TOKEN_SECRET must be set')
-}
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -37,46 +29,8 @@ const k8s = new kubernetes.Core({
  * on authorizing capabilities instead of storing state.
  */
 class Host {
-  /**
-   * Sign a session
-   *
-   * Generates a HMAC-SHA256 signature of the session object that is used for verification.
-   *
-   * @param  {object} session The session object
-   * @return {string}         The session signature (a hex digest)
-   */
-  sign (session) {
-    return crypto.createHmac('sha256', TOKEN_SECRET).update(JSON.stringify(session)).digest('hex')
-  }
-
-  checkin (token) {
-    let session
-    if (token) {
-      const json = Buffer.from(token, 'base64').toString()
-      const object = JSON.parse(json)
-      if (object.signature !== this.sign(object.session)) return null
-      session = object.session
-    } else {
-      session = {
-        start: new Date()
-      }
-    }
-    return session
-  }
-
-  // Checkout a session by creating a token for it
-  checkout (session) {
-    const object = {
-      session: session,
-      signature: this.sign(session)
-    }
-    const json = JSON.stringify(object)
-    const token = Buffer.from(json).toString('base64')
-    return token
-  }
-
   spawn (cb) {
-    if (NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
       // During development use Docker to emulate a pod by running
       // a new container
       randomPort((port) => {
@@ -155,10 +109,7 @@ class Host {
     }
   }
 
-  manifest (token, cb) {
-    var session = this.checkin(token)
-    if (!session) session = {}
-
+  manifest (session, cb) {
     // Treat this like a login and remove the session
     // Another option would be to check id the pod is still active and reuseit
     if (session.pod) {
@@ -176,15 +127,12 @@ class Host {
           Accept: 'application/json'
         }
       }, {retries: 9}, (err, resp, body) => {
-        const token = this.checkout(session)
-        cb(err, body, token)
+        cb(err, body, session)
       })
     })
   }
 
-  post (type, options, name, token, cb) {
-    const session = this.checkin(token)
-    if (!session) return cb(new Error('Invalid token'))
+  post (type, options, name, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
     request({
@@ -196,14 +144,11 @@ class Host {
       body: JSON.stringify(options),
       timeout: 10000
     }, {retries: 9}, (err, res, body) => {
-      const token = this.checkout(session)
-      cb(err, body, token)
+      cb(err, body, session)
     })
   }
 
-  put (address, method, args, token, cb) {
-    const session = this.checkin(token)
-    if (!session) return cb(new Error('Invalid token'))
+  put (address, method, args, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
     request({
@@ -216,7 +161,7 @@ class Host {
       json: true
     }, (err, res, body) => {
       if (err) return cb(err)
-      cb(err, body, token)
+      cb(err, body, session)
     })
   }
 
