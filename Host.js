@@ -12,10 +12,10 @@ const NODE_ENV = process.env.NODE_ENV
 
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/alpha'
 
-var TOKEN_KEY = process.env.TOKEN_KEY
-if (!TOKEN_KEY) {
-  if (NODE_ENV === 'development') TOKEN_KEY = 'a super unsecet key'
-  else throw Error('TOKEN_KEY must be set')
+var TOKEN_SECRET = process.env.TOKEN_SECRET
+if (!TOKEN_SECRET) {
+  if (NODE_ENV === 'development') TOKEN_SECRET = 'a super unsecet key'
+  else throw Error('TOKEN_SECRET must be set')
 }
 
 // During development, Docker is used to create session containers
@@ -46,7 +46,7 @@ class Host {
    * @return {string}         The session signature (a hex digest)
    */
   sign (session) {
-    return crypto.createHmac('sha256', TOKEN_KEY).update(JSON.stringify(session)).digest('hex')
+    return crypto.createHmac('sha256', TOKEN_SECRET).update(JSON.stringify(session)).digest('hex')
   }
 
   checkin (token) {

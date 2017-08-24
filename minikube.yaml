@@ -1,18 +1,15 @@
-# A Minikube deployment
-# 
-# Has configs which are inappropriate for production but which make
-# development a lot easier
+# Minikube deployment
 
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
-  name: stencila-cloud
+  name: stencila-cloud-deployment
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: stencila-cloud
+        app: stencila-cloud-app
     spec:
       containers:
 
@@ -25,7 +22,7 @@ spec:
           env:
             - name: REDEPLOY_DATETIME
               value: REDEPLOY_DATETIME_
-            - name: TOKEN_KEY
+            - name: TOKEN_SECRET
               value: 'in production this should actually be a secret'
             - name: DOCKER_HOST
               value: tcp://127.0.0.1:2375
@@ -55,7 +52,7 @@ spec:
 
 ---
 
-# Expose the Stencila Cloud server
+# Expose the server-container for testing
 
 kind: Service
 apiVersion: v1
@@ -64,7 +61,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: stencila-cloud
+    app: stencila-cloud-app
   ports:
     - protocol: TCP
       port: 80
@@ -73,8 +70,8 @@ spec:
 
 ---
 
-# Expose the Docker-in-Docker container so that we
-# can do a `docker build ...` inside of it from 
+# Expose the docker-container to be able 
+# to do a `docker build ...` inside of it from 
 # outside of the cluster (see README)
 
 kind: Service
@@ -84,7 +81,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: stencila-cloud
+    app: stencila-cloud-app
   ports:
     - protocol: TCP
       port: 2375
@@ -92,8 +89,8 @@ spec:
 
 ---
 
-# Expose the Docker registry outside. This is to allow kubectl to pull
-# images built by within this cluster. Need to run:
+# Expose the docker-container to allow kubectl to pull
+# images built within this cluster. Need to run:
 #   kubectl port-forward $(kubectl get pods -n | grep stencila-cloud-registry | awk '{print $1;}') 5000:5000
 
 kind: Service
@@ -103,7 +100,7 @@ metadata:
 spec:
   type: NodePort
   selector:
-    app: stencila-cloud
+    app: stencila-cloud-app
   ports:
     - protocol: TCP
       port: 5000
