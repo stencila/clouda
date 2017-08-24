@@ -54,14 +54,14 @@ function receive (req, res, ctx, regex, cb) {
   if (!match) return error(req, res, ctx, 400, 'Bad Request')
 
   // Attempt to get authorization token from cookie...
-  let token = cookie.parse(req.headers.cookie || '').token
+  let token = url.parse(req.url, true).query.token
   // ...or, from Authorization header
   if (!token && req.headers.authorization) {
     const match = req.headers.authorization.match(/^Token (.+)$/)
     if (match) token = match[1]
   }
   // ...or, from query parameter
-  if (!token) token = url.parse(req.url, true).query.token
+  if (!token) token = cookie.parse(req.headers.cookie || '').token
 
   // Forbid access if no token found
   if (!token) {
@@ -100,7 +100,6 @@ function send (req, res, ctx, body, session) {
 
   ctx.send(200, body || ' ', headers)
 }
-
 
 class HostHttpServer {
   constructor (host, address = '127.0.0.1', port = 2000) {
