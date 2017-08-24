@@ -4,6 +4,12 @@ const crypto = require('crypto')
 const merry = require('merry')
 const url = require('url')
 
+/*
+ * We use signed JSON objects, stored as Base64 encoded cookies on the client,
+ * for persisting session state across calls. We do not use the Jason Web Tokens (JWT) for this
+ * as they have security vulnerabilities. We do not use Macroons for this as they are focussed
+ * on authorizing capabilities instead of storing state.
+ */
 var TOKEN_SECRET = process.env.TOKEN_SECRET
 if (!TOKEN_SECRET) {
   if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'a super unsecet key'

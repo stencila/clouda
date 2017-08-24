@@ -22,11 +22,6 @@ const k8s = new kubernetes.Core({
 
 /**
  * Implements the Stencila Host API using a Kubernetes cluster
- *
- * We use signed JSON objects, stored as Base64 encoded cookies on the client,
- * for persisting session state across calls. We do not use the Jason Web Tokens (JWT) for this
- * as they have security vulnerabilities. We do not us Macroons for this as they are focussed
- * on authorizing capabilities instead of storing state.
  */
 class Host {
   spawn (cb) {
