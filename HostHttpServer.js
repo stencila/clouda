@@ -23,29 +23,27 @@ function signature (session) {
 
 // Generate a verified session object from a token
 function signin (token, req, res, ctx) {
-  const json = Buffer.from(token, 'base64').toString()
-  let object
+  const parts = token.split('.')
+  if (parts.length !== 2) return error(req, res, ctx, 400, 'Malformed token')
+
+  let json = Buffer.from(parts[0], 'base64').toString()
+  let session
   try {
-    object = JSON.parse(json)
+    session = JSON.parse(json)
   } catch (err) {
     return error(req, res, ctx, 400, 'Malformed token')
   }
-  if (object.signature !== signature(object.session)) {
+
+  let signat = Buffer.from(parts[1], 'base64').toString()
+  if (signat !== signature(session)) {
     return error(req, res, ctx, 401, 'Authentication required')
   }
-  const session = object.session
   return session
 }
 
 // Generate a token from a session object
 function signout (session) {
-  const object = {
-    session: session,
-    signature: signature(session)
-  }
-  const json = JSON.stringify(object)
-  const token = Buffer.from(json).toString('base64')
-  return token
+  return Buffer.from(JSON.stringify(session)).toString('base64') + '.' + Buffer.from(signature(session)).toString('base64')
 }
 
 // General error functions
@@ -120,7 +118,7 @@ function send (req, res, ctx, body, session) {
     }
   }
 
-  if (session) {
+  if (session && req.method !== 'OPTIONS') {
     // Generate a token from session and set cookie
     const token = signout(session)
     headers['Set-Cookie'] = `token=${token}`
