@@ -131,7 +131,7 @@ class Host {
     }
   }
 
-  post (type, options, name, session, cb) {
+  post (type, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
     request({
@@ -140,14 +140,13 @@ class Host {
       headers: {
         Accept: 'application/json'
       },
-      body: JSON.stringify(options),
-      timeout: 10000
+      body: body
     }, {retries: 9}, (err, res, body) => {
       cb(err, body, session)
     })
   }
 
-  put (address, method, args, session, cb) {
+  put (address, method, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
     request({
@@ -156,8 +155,7 @@ class Host {
       headers: {
         Accept: 'application/json'
       },
-      body: args,
-      json: true
+      body: body
     }, (err, res, body) => {
       if (err) return cb(err)
       cb(err, body, session)

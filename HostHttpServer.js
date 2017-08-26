@@ -76,25 +76,48 @@ function receive (req, res, ctx, regex, cb) {
   // Get request body and parse it
   body(req, (err, body) => {
     if (err) return error(req, res, ctx, 500, err.message)
-    let data
-    if (body) {
-      try {
-        data = JSON.parse(body)
-      } catch (err) {
-        return error(req, res, ctx, 400, 'Invalid JSON in request body')
-      }
-    }
-
-    cb(match, session, data)
+    cb(match, session, body)
   })
 }
 
 // Send a response
 function send (req, res, ctx, body, session) {
-  let origin = 'http://' + url.parse(req.headers.referer || '').host
-  let headers = {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Credentials': 'true'
+  let headers = {}
+
+  // CORS headers are used to control access by browsers. In particular, CORS
+  // can prevent access by XHR requests made by Javascript in third party sites.
+  // See https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+
+  // Get the Origin header (sent in CORS and POST requests) and fall back to Referer header
+  // if it is not present (either of these should be present in most browser requests)
+  let origin = req.headers.origin
+  if (!origin && req.headers.referer) {
+    let uri = url.parse(req.headers.referer || '')
+    origin = `${uri.protocol}//${uri.host}`
+  }
+
+  // If an origin has been found and is authorized set CORS headers
+  // Without these headers browser XHR request get an error like:
+  //     No 'Access-Control-Allow-Origin' header is present on the requested resource.
+  //     Origin 'http://evil.hackers:4000' is therefore not allowed access.
+  if (origin) {
+    // 'Simple' requests (GET and POST XHR requests)
+    headers = Object.assign(headers, {
+      'Access-Control-Allow-Origin': origin,
+      // Allow sending cookies and other credentials
+      'Access-Control-Allow-Credentials': 'true'
+    })
+    // Pre-flighted requests by OPTIONS method (made before PUT, DELETE etc XHR requests and in other circumstances)
+    // get additional CORS headers
+    if (req.method === 'OPTIONS') {
+      headers = Object.assign(headers, {
+        // Allowable methods and headers
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        // "how long the response to the preflight request can be cached for without sending another preflight request"
+        'Access-Control-Max-Age': '86400' // 24 hours
+      })
+    }
   }
 
   if (session) {
@@ -117,16 +140,11 @@ class HostHttpServer {
     const app = merry()
 
     app.route('OPTIONS', '/*', (req, res, ctx) => {
-      // CORS headers added to all requests to allow direct access by browsers
-      // See https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
-      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-      res.setHeader('Access-Control-Max-Age', '1728000')
       send(req, res, ctx)
     })
 
     app.route('GET', '/', (req, res, ctx) => {
-      receive(req, res, ctx, /\//, (match, session, data) => {
+      receive(req, res, ctx, /\//, (match, session) => {
         this._host.manifest(session, (err, manifest, session) => {
           if (err) return error(req, res, ctx, 500, err.message)
           send(req, res, ctx, manifest, session)
@@ -135,12 +153,10 @@ class HostHttpServer {
     })
 
     app.route('POST', '/*', (req, res, ctx) => {
-      receive(req, res, ctx, /\/(.+)/, (match, session, data) => {
+      receive(req, res, ctx, /\/(.+)/, (match, session, body) => {
         if (!session) return error(req, res, ctx, 401, 'Authentication required')
         const type = match[1]
-        const options = data
-        const name = options && options.name
-        this._host.post(type, options, name, session, (err, address, session) => {
+        this._host.post(type, body, session, (err, address, session) => {
           if (err) return error(req, res, ctx, 500, err.message)
           send(req, res, ctx, address, session)
         })
@@ -148,12 +164,11 @@ class HostHttpServer {
     })
 
     app.route('PUT', '/*', (req, res, ctx) => {
-      receive(req, res, ctx, /\/([^!]+)!(.+)/, (match, session, data) => {
+      receive(req, res, ctx, /\/([^!]+)!(.+)/, (match, session, body) => {
         if (!session) return error(req, res, ctx, 401, 'Authentication required')
         const address = match[1]
         const method = match[2]
-        const args = data
-        this._host.put(address, method, args, session, (err, result, session) => {
+        this._host.put(address, method, body, session, (err, result, session) => {
           if (err) return error(req, res, ctx, 500, err.message)
           send(req, res, ctx, result, session)
         })
