@@ -45,11 +45,17 @@ class Host {
         docker.createContainer(options, (err, container) => {
           if (err) return cb(err)
 
-          pino.info({ pod: container.id }, 'created')
+          pino.info({
+            pod: container.id,
+            port: port
+          }, 'created')
           container.start((err) => {
             if (err) return cb(err)
 
-            pino.info({ pod: container.id }, 'started')
+            pino.info({
+              pod: container.id,
+              port: port
+            }, 'started')
             cb(null, `http://127.0.0.1:${port}`)
           })
         })
