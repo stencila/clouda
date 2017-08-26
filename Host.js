@@ -5,6 +5,7 @@ const pino = require('pino')()
 const randomPort = require('random-port')
 const request = require('retry-request')
 
+const version = require('./package.json').version
 const HostHttpServer = require('./HostHttpServer')
 
 // Configuration settings
@@ -93,29 +94,41 @@ class Host {
   }
 
   manifest (session, cb) {
-    ((cb) => {
-      if (session.pod) cb(null, session.pod)
-      else {
+    if (!session) {
+      // If no session then just return a manifest
+      cb(null, {
+        stencila: {
+          package: 'cloud',
+          version: version
+        }
+      })
+    } else {
+      // If a session then use it's existing pod,
+      // or spawn a new one
+      ((cb) => {
+        if (session.pod) {
+          return cb(null, session.pod)
+        }
         this.spawn((err, pod) => {
           if (err) return cb(err)
 
           session.pod = pod
           cb(null, pod)
         })
-      }
-    })((err, pod) => {
-      if (err) return cb(err)
+      })((err, pod) => {
+        if (err) return cb(err)
 
-      request({
-        method: 'GET',
-        uri: pod,
-        headers: {
-          Accept: 'application/json'
-        }
-      }, {retries: 9}, (err, resp, body) => {
-        cb(err, body, session)
+        request({
+          method: 'GET',
+          uri: pod,
+          headers: {
+            Accept: 'application/json'
+          }
+        }, {retries: 9}, (err, resp, body) => {
+          cb(err, body, session)
+        })
       })
-    })
+    }
   }
 
   post (type, options, name, session, cb) {

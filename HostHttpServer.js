@@ -69,13 +69,9 @@ function receive (req, res, ctx, regex, cb) {
   // ...or, from query parameter
   if (!token) token = cookie.parse(req.headers.cookie || '').token
 
-  // Forbid access if no token found
-  if (!token) {
-    return error(req, res, ctx, 401, 'Authentication required')
-  }
-
   // Generate a session from token
-  const session = signin(token, req, res, ctx)
+  let session = null
+  if (token) session = signin(token, req, res, ctx)
 
   // Get request body and parse it
   body(req, (err, body) => {
@@ -88,6 +84,7 @@ function receive (req, res, ctx, regex, cb) {
         return error(req, res, ctx, 400, 'Invalid JSON in request body')
       }
     }
+
     cb(match, session, data)
   })
 }
@@ -100,9 +97,11 @@ function send (req, res, ctx, body, session) {
     'Access-Control-Allow-Credentials': 'true'
   }
 
-  // Generate a token from session and set cookie
-  const token = signout(session)
-  headers['Set-Cookie'] = `token=${token}`
+  if (session) {
+    // Generate a token from session and set cookie
+    const token = signout(session)
+    headers['Set-Cookie'] = `token=${token}`
+  }
 
   ctx.send(200, body || ' ', headers)
 }
@@ -137,6 +136,7 @@ class HostHttpServer {
 
     app.route('POST', '/*', (req, res, ctx) => {
       receive(req, res, ctx, /\/(.+)/, (match, session, data) => {
+        if (!session) return error(req, res, ctx, 401, 'Authentication required')
         const type = match[1]
         const options = data
         const name = options && options.name
@@ -149,6 +149,7 @@ class HostHttpServer {
 
     app.route('PUT', '/*', (req, res, ctx) => {
       receive(req, res, ctx, /\/([^!]+)!(.+)/, (match, session, data) => {
+        if (!session) return error(req, res, ctx, 401, 'Authentication required')
         const address = match[1]
         const method = match[2]
         const args = data
@@ -165,7 +166,8 @@ class HostHttpServer {
     })
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`Use this token to sign in using HTTPie\nhttp --session=/tmp/session.json ':${this._port}/?token=${signout({})}'`)
+      const token = signout({})
+      console.log(`Use this token to sign in:\n  ${token}\ne.g. using HTTPie:\n  http --session=/tmp/session.json ':${this._port}/?token=${token}'`)
     }
 
     app.listen(this._port)
