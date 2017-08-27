@@ -10,6 +10,7 @@ const HostHttpServer = require('./HostHttpServer')
 
 // Configuration settings
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/alpha'
+const POD_TIMEOUT = 3600 // seconds
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -26,12 +27,16 @@ const k8s = new kubernetes.Core({
  */
 class Host {
   spawn (cb) {
+    const cmd = ['node']
+    const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, ${POD_TIMEOUT})`]
+
     if (process.env.NODE_ENV === 'development') {
       // During development use Docker to emulate a pod by running
       // a new container
       randomPort((port) => {
         const options = {
           Image: STENCILA_IMAGE,
+          Cmd: cmd.concat(args),
           ExposedPorts: { '2000/tcp': {} },
           HostConfig: {
             PortBindings: {
@@ -62,23 +67,41 @@ class Host {
       })
     } else {
       // In production, use Kubernetes to create a new pod
-      const name = 'pod-' + crypto.randomBytes(24).toString('hex')
+      const name = 'stencila-cloud-pod-' + crypto.randomBytes(12).toString('hex')
       const port = 2000
       k8s.ns.pods.post({ body: {
         kind: 'Pod',
         apiVersion: 'v1',
         metadata: {
-          name: name
+          name: name,
+          type: 'stencila-cloud-pod'
         },
         spec: {
           containers: [{
             name: 'stencila-container',
+
             image: STENCILA_IMAGE,
             imagePullPolicy: 'IfNotPresent',
+
+            command: cmd,
+            args: args,
+
+            resources: {
+              requests: {
+                memory: '500Mi',
+                cpu: '250m'
+              },
+              limits: {
+                memory: '2Gi',
+                cpu: '1000m'
+              }
+            },
+
             ports: [{
               containerPort: port
             }]
-          }]
+          }],
+          restartPolicy: 'Never'
         }
       }}, (err, pod) => {
         if (err) return cb(err)
