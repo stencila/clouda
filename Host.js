@@ -28,7 +28,7 @@ const k8s = new kubernetes.Core({
 class Host {
   spawn (cb) {
     const cmd = ['node']
-    const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, ${POD_TIMEOUT})`]
+    const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, false, ${POD_TIMEOUT})`]
 
     if (process.env.NODE_ENV === 'development') {
       // During development use Docker to emulate a pod by running
@@ -186,7 +186,6 @@ class Host {
       },
       body: body
     }, (err, res, body) => {
-      if (err) return cb(err)
       cb(err, body, session)
     })
   }
