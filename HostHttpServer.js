@@ -4,7 +4,16 @@ const crypto = require('crypto')
 const merry = require('merry')
 const url = require('url')
 
-/*
+/**
+ * Access ticket
+ */
+var TICKET = process.env.TICKET
+if (!TICKET) {
+  if (process.env.NODE_ENV === 'development') TICKET = 'platypus'
+  else throw Error('TICKET must be set')
+}
+
+/**
  * We use signed JSON objects, stored as Base64 encoded cookies on the client,
  * for persisting session state across calls. We do not use the Jason Web Tokens (JWT) for this
  * as they have security vulnerabilities. We do not use Macroons for this as they are focussed
@@ -36,7 +45,7 @@ function signin (token, req, res, ctx) {
 
   let signat = Buffer.from(parts[1], 'base64').toString()
   if (signat !== signature(session)) {
-    return error(req, res, ctx, 401, 'Authentication required')
+    return error(req, res, ctx, 403, 'Bad token')
   }
   return session
 }
@@ -57,19 +66,19 @@ function receive (req, res, ctx, regex, cb) {
   const match = url.parse(req.url).pathname.match(regex)
   if (!match) return error(req, res, ctx, 400, 'Bad Request')
 
-  // Attempt to get authorization token from cookie...
-  let token = url.parse(req.url, true).query.token
-  // ...or, from Authorization header
-  if (!token && req.headers.authorization) {
-    const match = req.headers.authorization.match(/^Token (.+)$/)
-    if (match) token = match[1]
-  }
-  // ...or, from query parameter
-  if (!token) token = cookie.parse(req.headers.cookie || '').token
-
-  // Generate a session from token
   let session = null
-  if (token) session = signin(token, req, res, ctx)
+
+  // Attempt to get authorization token from cookie
+  let token = cookie.parse(req.headers.cookie || '').token
+  if (token) {
+    // Generate a session from token
+    session = signin(token, req, res, ctx)
+  } else {
+    // If no token then check for ticket in URL
+    let ticket = url.parse(req.url, true).query.ticket
+    if (ticket === TICKET) session = {}
+    else return error(req, res, ctx, 403, 'Forbidden')
+  }
 
   // Get request body and parse it
   body(req, (err, body) => {
@@ -180,7 +189,7 @@ class HostHttpServer {
 
     if (process.env.NODE_ENV === 'development') {
       const token = signout({})
-      console.log(`Use this token to sign in:\n  ${token}\ne.g. using HTTPie:\n  http --session=/tmp/session.json ':${this._port}/?token=${token}'`)
+      console.log(`To sign in,\n  HTTPie:    http --session=/tmp/session.json ':${this._port}/?ticket=${TICKET}'`)
     }
 
     app.listen(this._port)

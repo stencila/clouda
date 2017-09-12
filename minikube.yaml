@@ -22,6 +22,8 @@ spec:
           env:
             - name: REDEPLOY_DATETIME
               value: REDEPLOY_DATETIME_
+            - name: TICKET
+              value: 'platypus'
             - name: TOKEN_SECRET
               value: 'in production this should actually be a secret'
             - name: DOCKER_HOST
