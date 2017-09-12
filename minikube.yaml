@@ -1,5 +1,7 @@
 # Minikube deployment
 
+# Deployment of the stencila/cloud image
+
 kind: Deployment
 apiVersion: extensions/v1beta1
 metadata:
@@ -51,6 +53,37 @@ spec:
           image: registry:2
           ports:
             - containerPort: 5000
+
+---
+
+# Deployment of a pool of standby stencila/images containers
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: stencila-images-deployment
+spec:
+  replicas: 5
+  template:
+    metadata:
+      labels:
+        pool: standby
+    spec:
+      containers:
+
+        - name: stencila-container
+          image: stencila/alpha
+          # Use  `IfNotPresent` so that Kubernetes does not pull each time and
+          # instead uses the latest build (see README)
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REDEPLOY_DATETIME
+              value: REDEPLOY_DATETIME_
+          ports:
+            - containerPort: 2000
+          # Run with same arguments as spawned containers
+          command: ['node']
+          args: ['-e', 'require("stencila-node").run("0.0.0.0", 2000, false, 3600)']
 
 ---
 

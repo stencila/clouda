@@ -26,6 +26,97 @@ const k8s = new kubernetes.Core({
  * Implements the Stencila Host API using a Kubernetes cluster
  */
 class Host {
+  constructor () {
+    this._id = `cloud-${crypto.randomBytes(24).toString('hex')}`
+  }
+
+  /**
+   * Aquire a pod from the standby pool
+   */
+  aquire (cb) {
+    if (process.env.NODE_ENV === 'development') {
+      // During development, get a running container with label `pool=standby`
+      // Launch these manually:
+      //   docker run --label pool=standby -d -p 2010:2000 stencila/alpha
+      // At time of writing it was not possible to update the label (e.g. to
+      // remove it from the pool https://github.com/moby/moby/issues/21721#issuecomment-299577702)
+      // So you have to stop them manually as well.
+      docker.listContainers({
+        'limit': 1,
+        'filters': '{"status": ["running"], "label": ["pool=standby"]}'
+      }, function (err, containers) {
+        if (err) return cb(err)
+
+        if (containers.length === 0) cb(null, null)
+        else {
+          let container = containers[0]
+          let port = container.Ports[0]
+          pino.info({ pod: container.Id }, 'aquired')
+
+          let url = `http://${port.IP}:${port.PublicPort}`
+          cb(null, url)
+        }
+      })
+    } else {
+      // In production, get a running container with label `pool=standby`
+      k8s.ns.pods.get({ qs: { labelSelector: 'pool=standby' } }, (err, pods) => {
+        if (err) return cb(err)
+
+        for (let pod of pods.items) {
+          if (pod.status.phase === 'Running') {
+            pino.info({ pod: pod.metadata.name }, 'claiming')
+
+            // Claim this pod
+            k8s.ns.pods(pod.metadata.name).patch({ body: {
+              metadata: {
+                labels: {
+                  pool: 'claimed',
+                  claimer: this._id
+                }
+              }
+            }}, (err, pod) => {
+              if (err) return cb(err)
+
+              pino.info({ pod: pod.metadata.name }, 'aquiring')
+
+              // Check that this host is the claimer of the pod
+              const id = pod.metadata.labels.claimer
+              if (id === this._id) {
+                // This host is the claimer so aquire it
+                k8s.ns.pods(pod.metadata.name).patch({ body: {
+                  metadata: {
+                    labels: {
+                      pool: 'aquired',
+                      aquirer: this._id
+                    }
+                  }
+                }}, (err, pod) => {
+                  if (err) return cb(err)
+
+                  pino.info({ pod: pod.metadata.name }, 'aquired')
+
+                  let url = `http://${pod.status.podIP}:2000`
+                  cb(null, url)
+                })
+              } else {
+                // Another host claimed this pod just after this
+                // host, so leave it to them and try again
+                this.aquire(cb)
+              }
+            })
+
+            break
+          }
+        }
+      })
+    }
+  }
+
+  /**
+   * Spawn a new pod
+   *
+   * This will only be used if no standy by pods are available
+   */
   spawn (cb) {
     const cmd = ['node']
     const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, false, ${POD_TIMEOUT})`]
@@ -74,7 +165,13 @@ class Host {
         apiVersion: 'v1',
         metadata: {
           name: name,
-          type: 'stencila-cloud-pod'
+          type: 'stencila-cloud-pod',
+          metadata: {
+            labels: {
+              pool: 'spawned',
+              spawner: this._id
+            }
+          }
         },
         spec: {
           containers: [{
@@ -122,10 +219,24 @@ class Host {
     }
   }
 
+  obtain (cb) {
+    this.aquire((err, pod) => {
+      if (err) return cb(err)
+      if (pod) return cb(null, pod)
+
+      this.spawn((err, pod) => {
+        if (err) return cb(err)
+
+        cb(null, pod)
+      })
+    })
+  }
+
   manifest (session, cb) {
     if (!session) {
       // If no session then just return a manifest
       cb(null, {
+        id: this._id,
         stencila: {
           package: 'cloud',
           version: version
@@ -138,7 +249,7 @@ class Host {
         if (session.pod) {
           return cb(null, session.pod)
         }
-        this.spawn((err, pod) => {
+        this.obtain((err, pod) => {
           if (err) return cb(err)
 
           session.pod = pod
