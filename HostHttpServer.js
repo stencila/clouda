@@ -64,7 +64,7 @@ function error (req, res, ctx, code, message) {
 // Receive a request
 function receive (req, res, ctx, regex, cb) {
   const match = url.parse(req.url).pathname.match(regex)
-  if (!match) return error(req, res, ctx, 400, 'Bad Request')
+  if (!match) return error(req, res, ctx, 400, 'Bad request')
 
   let session = null
 
@@ -76,9 +76,14 @@ function receive (req, res, ctx, regex, cb) {
   } else {
     // If no token then check for ticket in URL
     let ticket = url.parse(req.url, true).query.ticket
-    if (ticket === TICKET) session = {}
-    else return error(req, res, ctx, 403, 'Forbidden')
+    if (ticket) {
+      if (ticket !== TICKET) return error(req, res, ctx, 403, 'Bad ticket')
+      else session = {} // Create an empty session
+    }
   }
+
+  // Allow null sessions so that manifest can be obtained from a unticketed
+  // GET / - the endpoint which is used by Kubernetes Ingress as a readyness probe
 
   // Get request body and parse it
   body(req, (err, body) => {
@@ -188,7 +193,6 @@ class HostHttpServer {
     })
 
     if (process.env.NODE_ENV === 'development') {
-      const token = signout({})
       console.log(`To sign in,\n  HTTPie:    http --session=/tmp/session.json ':${this._port}/?ticket=${TICKET}'`)
     }
 
