@@ -11,6 +11,8 @@ const HostHttpServer = require('./HostHttpServer')
 // Configuration settings
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/alpha'
 const POD_TIMEOUT = 3600 // seconds
+const STANDBY_POOL = 10 // target number of containers in the standby pool
+const STANDBY_FREQ = 30000 // fill the standby pool every x milliseconds
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -31,9 +33,9 @@ class Host {
   }
 
   /**
-   * Aquire a pod from the standby pool
+   * Acquire a pod from the standby pool
    */
-  aquire (cb) {
+  acquire (cb) {
     if (process.env.NODE_ENV === 'development') {
       // During development, get a running container with label `pool=standby`
       // Launch these manually:
@@ -51,7 +53,7 @@ class Host {
         else {
           let container = containers[0]
           let port = container.Ports[0]
-          pino.info({ pod: container.Id }, 'aquired')
+          pino.info({ pod: container.Id }, 'acquired')
 
           let url = `http://${port.IP}:${port.PublicPort}`
           cb(null, url)
@@ -68,6 +70,7 @@ class Host {
 
             // Claim this pod
             k8s.ns.pods(pod.metadata.name).patch({ body: {
+              // Mark as claimed
               metadata: {
                 labels: {
                   pool: 'claimed',
@@ -77,23 +80,23 @@ class Host {
             }}, (err, pod) => {
               if (err) return cb(err)
 
-              pino.info({ pod: pod.metadata.name }, 'aquiring')
+              pino.info({ pod: pod.metadata.name }, 'acquiring')
 
               // Check that this host is the claimer of the pod
               const id = pod.metadata.labels.claimer
               if (id === this._id) {
-                // This host is the claimer so aquire it
+                // This host is the claimer so acquire it
                 k8s.ns.pods(pod.metadata.name).patch({ body: {
                   metadata: {
                     labels: {
-                      pool: 'aquired',
-                      aquirer: this._id
+                      pool: 'acquired',
+                      acquirer: this._id
                     }
                   }
                 }}, (err, pod) => {
                   if (err) return cb(err)
 
-                  pino.info({ pod: pod.metadata.name }, 'aquired')
+                  pino.info({ pod: pod.metadata.name }, 'acquired')
 
                   let url = `http://${pod.status.podIP}:2000`
                   cb(null, url)
@@ -101,7 +104,7 @@ class Host {
               } else {
                 // Another host claimed this pod just after this
                 // host, so leave it to them and try again
-                this.aquire(cb)
+                this.acquire(cb)
               }
             })
 
@@ -117,7 +120,7 @@ class Host {
    *
    * This will only be used if no standy by pods are available
    */
-  spawn (cb) {
+  spawn (pool, cb) {
     const cmd = ['node']
     const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, false, ${POD_TIMEOUT})`]
 
@@ -127,6 +130,7 @@ class Host {
       randomPort((port) => {
         const options = {
           Image: STENCILA_IMAGE,
+          Labels: { pool: pool },
           Cmd: cmd.concat(args),
           ExposedPorts: { '2000/tcp': {} },
           HostConfig: {
@@ -166,11 +170,9 @@ class Host {
         metadata: {
           name: name,
           type: 'stencila-cloud-pod',
-          metadata: {
-            labels: {
-              pool: 'spawned',
-              spawner: this._id
-            }
+          labels: {
+            pool: pool,
+            spawner: this._id
           }
         },
         spec: {
@@ -185,11 +187,11 @@ class Host {
 
             resources: {
               requests: {
-                memory: '500Mi',
+                memory: '250Mi',
                 cpu: '250m'
               },
               limits: {
-                memory: '2Gi',
+                memory: '1Gi',
                 cpu: '1000m'
               }
             },
@@ -219,12 +221,45 @@ class Host {
     }
   }
 
+  fill () {
+    pino.info('filling')
+
+    if (process.env.NODE_ENV === 'development') {
+      docker.listContainers({
+        'filters': '{"status": ["running"], "label": ["pool=standby"]}'
+      }, (err, containers) => {
+        if (err) return fill(err)
+        fill(null, containers.length)
+      })
+    } else {
+      k8s.ns.pods.get({ qs: { labelSelector: 'pool=standby' } }, (err, pods) => {
+        if (err) return fill(err)
+        fill(null, pods.items.length)
+      })
+    }
+
+    const fill = (err, number) => {
+      if (err) pino.error(err, 'filling')
+
+      const required = STANDBY_POOL - number
+      if (required > 0) {
+        for (let index = 0; index < required; index++) {
+          this.spawn('standby', (err) => {
+            if (err) pino.error(err, 'spawning')
+          })
+        }
+      }
+
+      setTimeout(() => this.fill(), STANDBY_FREQ)
+    }
+  }
+
   obtain (cb) {
-    this.aquire((err, pod) => {
+    this.acquire((err, pod) => {
       if (err) return cb(err)
       if (pod) return cb(null, pod)
 
-      this.spawn((err, pod) => {
+      this.spawn('demanded', (err, pod) => {
         if (err) return cb(err)
 
         cb(null, pod)
@@ -304,6 +339,8 @@ class Host {
   run () {
     const server = new HostHttpServer(this)
     server.start()
+
+    this.fill()
   }
 }
 
