@@ -180,7 +180,6 @@ class HostHttpServer {
           } else {
             sendFile(req, filePath).on('headers', (res) => {
               let headers_ = headers(req, session)
-              console.log(session, headers_)
               for (let key of Object.keys(headers_)) res.setHeader(key, headers_[key])
             }).pipe(res)
           }

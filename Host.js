@@ -121,7 +121,7 @@ class Host {
    */
   spawn (pool, reason, cb) {
     const cmd = ['stencila-cmd']
-    const args = ['0.0.0.0', '2000', 'false', POD_TIMEOUT.toString()]
+    const args = ['"0.0.0.0"', '2000', 'false', POD_TIMEOUT.toString()]
 
     if (process.env.NODE_ENV === 'development') {
       // During development use Docker to emulate a peer pod by running
