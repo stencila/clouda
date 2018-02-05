@@ -31,7 +31,7 @@ function signature (session) {
 }
 
 // Generate a verified session object from a token
-function signin (token, req, res, ctx) {
+function sessionInitialize (token, req, res, ctx) {
   const parts = token.split('.')
   if (parts.length !== 2) return error(req, res, ctx, 400, 'Malformed token')
 
@@ -51,7 +51,7 @@ function signin (token, req, res, ctx) {
 }
 
 // Generate a token from a session object
-function signout (session) {
+function sessionFinalize (session) {
   return Buffer.from(JSON.stringify(session)).toString('base64') + '.' + Buffer.from(signature(session)).toString('base64')
 }
 
@@ -72,7 +72,7 @@ function receive (req, res, ctx, regex, cb) {
   let token = cookie.parse(req.headers.cookie || '').token
   if (token) {
     // Generate a session from token
-    session = signin(token, req, res, ctx)
+    session = sessionInitialize(token, req, res, ctx)
   } else {
     // If no token then check for ticket in URL
     let ticket = url.parse(req.url, true).query.ticket
@@ -134,7 +134,7 @@ function send (req, res, ctx, body, session) {
 
   if (session && req.method !== 'OPTIONS') {
     // Generate a token from session and set cookie
-    const token = signout(session)
+    const token = sessionFinalize(session)
     headers['Set-Cookie'] = `token=${token}`
   }
 
