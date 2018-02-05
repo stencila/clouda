@@ -2,6 +2,9 @@ const body = require('body')
 const cookie = require('cookie')
 const crypto = require('crypto')
 const merry = require('merry')
+const path = require('path')
+const pathIsInside = require('path-is-inside')
+const sendFile = require('send')
 const url = require('url')
 
 /**
@@ -92,8 +95,8 @@ function receive (req, res, ctx, regex, cb) {
   })
 }
 
-// Send a response
-function send (req, res, ctx, body, session) {
+// Generate headers for a response
+function headers (req, session) {
   let headers = {}
 
   // CORS headers are used to control access by browsers. In particular, CORS
@@ -138,7 +141,12 @@ function send (req, res, ctx, body, session) {
     headers['Set-Cookie'] = `token=${token}`
   }
 
-  ctx.send(200, body || ' ', headers)
+  return headers
+}
+
+// Send a response
+function send (req, res, ctx, body, session) {
+  ctx.send(200, body || ' ', headers(req, session))
 }
 
 class HostHttpServer {
@@ -155,12 +163,28 @@ class HostHttpServer {
       send(req, res, ctx)
     })
 
-    app.route('GET', '/', (req, res, ctx) => {
-      receive(req, res, ctx, /\//, (match, session) => {
-        this._host.manifest(session, (err, manifest, session) => {
-          if (err) return error(req, res, ctx, 500, err.message)
-          send(req, res, ctx, manifest, session)
-        })
+    app.route('GET', '/*', (req, res, ctx) => {
+      receive(req, res, ctx, /\/(.*)/, (match, session) => {
+        let acceptJson = (req.headers['accept'] || '').match(/application\/json/)
+        if (acceptJson) {
+          this._host.manifest(session, (err, manifest, session) => {
+            if (err) return error(req, res, ctx, 500, err.message)
+            send(req, res, ctx, manifest, session)
+          })
+        } else {
+          let staticPath = path.join(__dirname, 'static')
+          let requestPath = match[1] || 'index.html'
+          let filePath = path.join(staticPath, url.parse(requestPath).pathname)
+          if (!pathIsInside(filePath, staticPath)) {
+            return error(req, res, ctx, 403, filePath)
+          } else {
+            sendFile(req, filePath).on('headers', (res) => {
+              let headers_ = headers(req, session)
+              console.log(session, headers_)
+              for (let key of Object.keys(headers_)) res.setHeader(key, headers_[key])
+            }).pipe(res)
+          }
+        }
       })
     })
 
