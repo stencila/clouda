@@ -9,7 +9,7 @@ const version = require('./package.json').version
 const HostHttpServer = require('./HostHttpServer')
 
 // Configuration settings
-const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/alpha'
+const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/core'
 const POD_TIMEOUT = 3600 // seconds
 const STANDBY_POOL = 10 // target number of containers in the standby pool
 const STANDBY_FREQ = 30000 // fill the standby pool every x milliseconds
@@ -120,8 +120,8 @@ class Host {
    * This will only be used if no standy by pods are available
    */
   spawn (pool, reason, cb) {
-    const cmd = ['node']
-    const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, false, ${POD_TIMEOUT})`]
+    const cmd = ['stencila-cmd']
+    const args = ['0.0.0.0', '2000', 'false', POD_TIMEOUT.toString()]
 
     if (process.env.NODE_ENV === 'development') {
       // During development use Docker to emulate a peer pod by running
@@ -225,7 +225,7 @@ class Host {
     // Determine the number of pods in the `standby` pool which are not terminated
     if (process.env.NODE_ENV === 'development') {
       docker.listContainers({
-        'filters': '{"status": ["running", "pending"], "label": ["pool=standby"]}'
+        'filters': '{"status": ["running"], "label": ["pool=standby"]}'
       }, (err, containers) => {
         if (err) return fill(err)
 
@@ -243,14 +243,14 @@ class Host {
       })
     }
     const fill = (err, number) => {
-      if (err) return pino.error(err, 'filling')
+      if (err) return pino.error(err.message, 'filling')
       pino.info({desired: STANDBY_POOL, actual: number}, 'filling')
 
       const required = STANDBY_POOL - number
       if (required > 0) {
         for (let index = 0; index < required; index++) {
           this.spawn('standby', 'filling', (err) => {
-            if (err) pino.error(err, 'spawning')
+            if (err) pino.error(err.message, 'spawning')
           })
         }
       }
@@ -283,17 +283,17 @@ class Host {
    */
   cleanup () {
     if (process.env.NODE_ENV === 'development') {
-      throw new Error('Not implemented')
+      pino.warn('Host.cleanup not implemented in development mode')
     } else {
       k8s.ns.pods.get((err, pods) => {
-        if (err) return pino.error(err, 'cleanup')
+        if (err) return pino.error(err.message, 'cleanup')
 
         let count = 0
         for (let pod of pods.items) {
           if (['Succeeded', 'Failed'].indexOf(pod.status.phase) > -1) {
             count += 1
             k8s.ns.pods.delete({ name: pod.metadata.name }, (err, pod) => {
-              if (err) return pino.error(err, 'cleanup')
+              if (err) return pino.error(err.message, 'cleanup')
 
               pino.info({ pod: pod.metadata.name }, 'deleted')
             })
