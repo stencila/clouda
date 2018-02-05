@@ -13,6 +13,7 @@ const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/alpha'
 const POD_TIMEOUT = 3600 // seconds
 const STANDBY_POOL = 10 // target number of containers in the standby pool
 const STANDBY_FREQ = 30000 // fill the standby pool every x milliseconds
+const CLEANUP_FREQ = 120000 // cleanup terminated pods every x milliseconds
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -61,56 +62,54 @@ class Host {
       })
     } else {
       // In production, get a running container with label `pool=standby`
-      k8s.ns.pods.get({ qs: { labelSelector: 'pool=standby' } }, (err, pods) => {
+      k8s.ns.pods.get({ qs: { fieldSelector: 'status.phase=Running', labelSelector: 'pool=standby' } }, (err, pods) => {
         if (err) return cb(err)
 
-        for (let pod of pods.items) {
-          if (pod.status.phase === 'Running') {
-            pino.info({ pod: pod.metadata.name }, 'claiming')
+        // No running pods in the standby pool
+        if (pods.items.length === 0) return cb(null, null)
 
-            // Claim this pod
+        let pod = pods.items[0]
+        pino.info({ pod: pod.metadata.name }, 'claiming')
+
+        // Claim this pod
+        k8s.ns.pods(pod.metadata.name).patch({ body: {
+          // Mark as claimed
+          metadata: {
+            labels: {
+              pool: 'claimed',
+              claimer: this._id
+            }
+          }
+        }}, (err, pod) => {
+          if (err) return cb(err)
+
+          pino.info({ pod: pod.metadata.name }, 'acquiring')
+
+          // Check that this host is the claimer of the pod
+          const id = pod.metadata.labels.claimer
+          if (id === this._id) {
+            // This host is the claimer so acquire it
             k8s.ns.pods(pod.metadata.name).patch({ body: {
-              // Mark as claimed
               metadata: {
                 labels: {
-                  pool: 'claimed',
-                  claimer: this._id
+                  pool: 'occupied',
+                  acquirer: this._id
                 }
               }
             }}, (err, pod) => {
               if (err) return cb(err)
 
-              pino.info({ pod: pod.metadata.name }, 'acquiring')
+              pino.info({ pod: pod.metadata.name }, 'acquired')
 
-              // Check that this host is the claimer of the pod
-              const id = pod.metadata.labels.claimer
-              if (id === this._id) {
-                // This host is the claimer so acquire it
-                k8s.ns.pods(pod.metadata.name).patch({ body: {
-                  metadata: {
-                    labels: {
-                      pool: 'acquired',
-                      acquirer: this._id
-                    }
-                  }
-                }}, (err, pod) => {
-                  if (err) return cb(err)
-
-                  pino.info({ pod: pod.metadata.name }, 'acquired')
-
-                  let url = `http://${pod.status.podIP}:2000`
-                  cb(null, url)
-                })
-              } else {
-                // Another host claimed this pod just after this
-                // host, so leave it to them and try again
-                this.acquire(cb)
-              }
+              let url = `http://${pod.status.podIP}:2000`
+              cb(null, url)
             })
-
-            break
+          } else {
+            // Another host claimed this pod just after this
+            // host, so leave it to them and try again
+            this.acquire(cb)
           }
-        }
+        })
       })
     }
   }
@@ -120,12 +119,12 @@ class Host {
    *
    * This will only be used if no standy by pods are available
    */
-  spawn (pool, cb) {
+  spawn (pool, reason, cb) {
     const cmd = ['node']
     const args = ['-e', `require("stencila-node").run("0.0.0.0", 2000, false, ${POD_TIMEOUT})`]
 
     if (process.env.NODE_ENV === 'development') {
-      // During development use Docker to emulate a pod by running
+      // During development use Docker to emulate a peer pod by running
       // a new container
       randomPort((port) => {
         const options = {
@@ -161,18 +160,19 @@ class Host {
         })
       })
     } else {
-      // In production, use Kubernetes to create a new pod
-      const name = 'stencila-cloud-pod-' + crypto.randomBytes(12).toString('hex')
+      // In production, use Kubernetes to create a new peer pod
+      const name = 'stencila-cloud-peer-' + crypto.randomBytes(12).toString('hex')
       const port = 2000
       k8s.ns.pods.post({ body: {
         kind: 'Pod',
         apiVersion: 'v1',
         metadata: {
           name: name,
-          type: 'stencila-cloud-pod',
+          type: 'stencila-cloud-peer',
           labels: {
             pool: pool,
-            spawner: this._id
+            spawner: this._id,
+            reason: reason
           }
         },
         spec: {
@@ -187,11 +187,11 @@ class Host {
 
             resources: {
               requests: {
-                memory: '250Mi',
-                cpu: '250m'
+                memory: '500Mi',
+                cpu: '50m'
               },
               limits: {
-                memory: '1Gi',
+                memory: '1.2Gi',
                 cpu: '1000m'
               }
             },
@@ -222,29 +222,34 @@ class Host {
   }
 
   fill () {
-    pino.info('filling')
-
+    // Determine the number of pods in the `standby` pool which are not terminated
     if (process.env.NODE_ENV === 'development') {
       docker.listContainers({
-        'filters': '{"status": ["running"], "label": ["pool=standby"]}'
+        'filters': '{"status": ["running", "pending"], "label": ["pool=standby"]}'
       }, (err, containers) => {
         if (err) return fill(err)
+
         fill(null, containers.length)
       })
     } else {
       k8s.ns.pods.get({ qs: { labelSelector: 'pool=standby' } }, (err, pods) => {
         if (err) return fill(err)
-        fill(null, pods.items.length)
+
+        let count = 0
+        for (let pod of pods.items) {
+          if (['Running', 'Pending', 'ContainerCreating'].indexOf(pod.status.phase) > -1) count += 1
+        }
+        fill(null, count)
       })
     }
-
     const fill = (err, number) => {
-      if (err) pino.error(err, 'filling')
+      if (err) return pino.error(err, 'filling')
+      pino.info({desired: STANDBY_POOL, actual: number}, 'filling')
 
       const required = STANDBY_POOL - number
       if (required > 0) {
         for (let index = 0; index < required; index++) {
-          this.spawn('standby', (err) => {
+          this.spawn('standby', 'filling', (err) => {
             if (err) pino.error(err, 'spawning')
           })
         }
@@ -254,17 +259,51 @@ class Host {
     }
   }
 
-  obtain (cb) {
+  /**
+   * Demand a peer pod
+   */
+  demand (cb) {
     this.acquire((err, pod) => {
       if (err) return cb(err)
       if (pod) return cb(null, pod)
 
-      this.spawn('demanded', (err, pod) => {
+      this.spawn('occupied', 'demanded', (err, pod) => {
         if (err) return cb(err)
 
         cb(null, pod)
       })
     })
+  }
+
+  /**
+   * Cleanup pods that have terminated
+   *
+   * Note that these are not deleted by Kubernetes by default so will show up in places
+   * like the dashboard.
+   */
+  cleanup () {
+    if (process.env.NODE_ENV === 'development') {
+      throw new Error('Not implemented')
+    } else {
+      k8s.ns.pods.get((err, pods) => {
+        if (err) return pino.error(err, 'cleanup')
+
+        let count = 0
+        for (let pod of pods.items) {
+          if (['Succeeded', 'Failed'].indexOf(pod.status.phase) > -1) {
+            count += 1
+            k8s.ns.pods.delete({ name: pod.metadata.name }, (err, pod) => {
+              if (err) return pino.error(err, 'cleanup')
+
+              pino.info({ pod: pod.metadata.name }, 'deleted')
+            })
+          }
+        }
+        pino.info({ count: count }, 'deleted_pods')
+
+        setTimeout(() => this.cleanup(), CLEANUP_FREQ)
+      })
+    }
   }
 
   manifest (session, cb) {
@@ -284,7 +323,7 @@ class Host {
         if (session.pod) {
           return cb(null, session.pod)
         }
-        this.obtain((err, pod) => {
+        this.demand((err, pod) => {
           if (err) return cb(err)
 
           session.pod = pod
@@ -341,6 +380,7 @@ class Host {
     server.start()
 
     this.fill()
+    this.cleanup()
   }
 }
 
