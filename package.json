@@ -21,6 +21,7 @@
     "path-is-inside": "^1.0.2",
     "pino": "^4.7.1",
     "random-port": "^0.1.0",
-    "retry-request": "^3.0.0"
+    "retry-request": "^3.0.0",
+    "send": "^0.16.1"
   }
 }
