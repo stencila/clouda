@@ -136,9 +136,10 @@ function headers (req, session) {
   }
 
   if (session && req.method !== 'OPTIONS') {
-    // Generate a token from session and set cookie
+    // Generate a token from session and set cookie to expire
+    // after an hour of inactivity
     const token = sessionFinalize(session)
-    headers['Set-Cookie'] = `token=${token}`
+    headers['Set-Cookie'] = `token=${token}; Max-Age=3600`
   }
 
   return headers
