@@ -7,6 +7,8 @@ const request = require('retry-request')
 
 const version = require('./package.json').version
 const HostHttpServer = require('./HostHttpServer')
+const KubernetesState = require('./KubernetesState')
+const kubernetesState = new KubernetesState()
 
 // Configuration settings
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/core'
@@ -56,8 +58,7 @@ class Host {
           let port = container.Ports[0]
           pino.info({ pod: container.Id }, 'acquired')
 
-          let url = `http://${port.IP}:${port.PublicPort}`
-          cb(null, url)
+          cb(null, container.Id)
         }
       })
     } else {
@@ -101,8 +102,7 @@ class Host {
 
               pino.info({ pod: pod.metadata.name }, 'acquired')
 
-              let url = `http://${pod.status.podIP}:2000`
-              cb(null, url)
+              cb(null, pod.metadata.name)
             })
           } else {
             // Another host claimed this pod just after this
@@ -155,7 +155,7 @@ class Host {
               pod: container.id,
               port: port
             }, 'started')
-            cb(null, `http://127.0.0.1:${port}`)
+            cb(null, container.id)
           })
         })
       })
@@ -212,7 +212,7 @@ class Host {
 
             if (pod.status.phase === 'Running') {
               pino.info({ pod: pod.metadata.name }, 'started')
-              cb(null, `http://${pod.status.podIP}:${port}`)
+              cb(null, pod.metadata.name)
             } else setTimeout(awaitPod, 300)
           })
         }
@@ -306,6 +306,20 @@ class Host {
     }
   }
 
+  lookupUrl (pod, cb) {
+    kubernetesState.getPod((err, podState) => {
+      if (err) return cb(err);
+
+      if (podState.status === "Pending") {
+        // The nodes are full and the pod is waiting
+        cb(new Error("Pod not ready yet"))
+      }
+      else {
+        cb(null, `http://${podState.ip}:${podState.port}`)
+      }
+    })
+  }
+
   manifest (session, cb) {
     if (!session) {
       // If no session then just return a manifest
@@ -332,14 +346,18 @@ class Host {
       })((err, pod) => {
         if (err) return cb(err)
 
-        request({
-          method: 'GET',
-          uri: pod,
-          headers: {
-            Accept: 'application/json'
-          }
-        }, {retries: 9}, (err, resp, body) => {
-          cb(err, body, session)
+        lookupUrl(session.pod, (err, url) => {
+          if (err) return cb(err)
+          
+          request({
+            method: 'GET',
+            uri: url,
+            headers: {
+              Accept: 'application/json'
+            }
+          }, {retries: 9}, (err, resp, body) => {
+            cb(err, body, session)
+          })
         })
       })
     }
@@ -356,30 +374,38 @@ class Host {
   post (type, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
-    request({
-      method: 'POST',
-      uri: session.pod + '/' + type,
-      headers: {
-        Accept: 'application/json'
-      },
-      body: body
-    }, {retries: 9}, (err, res, body) => {
-      cb(err, body, session)
+    lookupUrl(session.pod, (err, url) => {
+      if (err) return cb(err)
+      
+      request({
+        method: 'POST',
+        uri: url + '/' + type,
+        headers: {
+          Accept: 'application/json'
+        },
+        body: body
+      }, {retries: 9}, (err, res, body) => {
+        cb(err, body, session)
+      })
     })
   }
 
   put (address, method, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
-    request({
-      method: 'PUT',
-      uri: session.pod + '/' + address + '!' + method,
-      headers: {
-        Accept: 'application/json'
-      },
-      body: body
-    }, (err, res, body) => {
-      cb(err, body, session)
+    lookupUrl(session.pod, (err, url) => {
+      if (err) return cb(err)
+      
+      request({
+        method: 'PUT',
+        uri: url + '/' + address + '!' + method,
+        headers: {
+          Accept: 'application/json'
+        },
+        body: body
+      }, (err, res, body) => {
+        cb(err, body, session)
+      })
     })
   }
 
