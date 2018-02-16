@@ -12,10 +12,22 @@ const kubernetesState = new KubernetesState()
 
 // Configuration settings
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/core'
-const POD_TIMEOUT = 3600 // seconds
-const STANDBY_POOL = 10 // target number of containers in the standby pool
-const STANDBY_FREQ = 30000 // fill the standby pool every x milliseconds
-const CLEANUP_FREQ = 120000 // cleanup terminated pods every x milliseconds
+const POD_TIMEOUT = process.env.POD_TIMEOUT || 3600 // seconds
+const STANDBY_POOL = process.env.STANDBY_POOL || 10 // target number of containers in the standby pool
+const STANDBY_FREQ = process.env.STANDBY_FREQ || 30000 // fill the standby pool every x milliseconds
+const CLEANUP_FREQ = process.env.CLEANUP_FREQ || 120000 // cleanup terminated pods every x milliseconds
+
+// The kubernetes scheduler ensures that, for each resource type, the sum of the resource requests of the scheduled
+// Containers is less than the capacity of the node.
+// For the the CPU values m is millicores (1000m is 100% of one CPU core)
+const POD_REQUEST_CPU = process.env.POD_REQUEST_MEM || '50m' // As well as limiting pods on the node this is also passed
+    // to docker's --cpu-shares controling the relative weighting of containers (since we are setting it to the same value
+    // for all containers this probably does nothing).
+const POD_REQUEST_MEM = process.env.POD_REQUEST_MEM || '500Mi' // Just used to limit pods on the node.
+
+const POD_LIMIT_CPU = process.env.POD_LIMIT_CPU || '1000m' // Enforced by kubernetes within 100ms intervals 
+const POD_LIMIT_MEM = process.env.POD_LIMIT_MEM || '1.2Gi' // converted to an integer, and used as the value of the
+                                                           // --memory flag in the docker run command
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -187,12 +199,12 @@ class Host {
 
             resources: {
               requests: {
-                memory: '500Mi',
-                cpu: '50m'
+                memory: POD_REQUEST_MEM,
+                cpu: POD_REQUEST_CPU
               },
               limits: {
-                memory: '1.2Gi',
-                cpu: '1000m'
+                memory: POD_LIMIT_MEM,
+                cpu: POD_LIMIT_CPU
               }
             },
 
