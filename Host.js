@@ -307,7 +307,7 @@ class Host {
   }
 
   lookupUrl (pod, cb) {
-    kubernetesState.getPod((err, podState) => {
+    kubernetesState.getPod(pod, (err, podState) => {
       if (err) return cb(err);
 
       if (podState.status === "Pending") {
@@ -346,9 +346,10 @@ class Host {
       })((err, pod) => {
         if (err) return cb(err)
 
-        lookupUrl(session.pod, (err, url) => {
+        console.log (session)
+        this.lookupUrl(session.pod, (err, url) => {
           if (err) return cb(err)
-          
+          console.log ("A")
           request({
             method: 'GET',
             uri: url,
@@ -356,6 +357,7 @@ class Host {
               Accept: 'application/json'
             }
           }, {retries: 9}, (err, resp, body) => {
+            console.log ("B")
             cb(err, body, session)
           })
         })
@@ -374,7 +376,7 @@ class Host {
   post (type, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
-    lookupUrl(session.pod, (err, url) => {
+    this.lookupUrl(session.pod, (err, url) => {
       if (err) return cb(err)
       
       request({
@@ -393,7 +395,7 @@ class Host {
   put (address, method, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
-    lookupUrl(session.pod, (err, url) => {
+    this.lookupUrl(session.pod, (err, url) => {
       if (err) return cb(err)
       
       request({

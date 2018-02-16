@@ -24,18 +24,18 @@ class KubernetesState {
     this.cachedAt = null;
   }
   getPod(pod, cb) {
-    get((err, state) => {
+    this.get((err, state) => {
       if (err) return cb(err);
 
       if (state.has(pod)) {
-        cb(state.get(pod))
+        cb(null, state.get(pod))
       }
       else {
-        getNow((err, state) => {
+        this.getNow((err, state) => {
           if (err) return cb(err);
     
           if (state.has(pod)) {
-            cb(state.get(pod))
+            cb(null, state.get(pod))
           }
           else {
             cb(new Error("Pod not found"))
@@ -46,7 +46,7 @@ class KubernetesState {
   }
   get (cb) {
     if (this.cachedAt === null || (new Date() - this.cachedAt) > EXPIRE_KUBE_STATE)
-      getNow(cb)
+    this.getNow(cb)
     else
       cb(null, cached)
   }
@@ -89,4 +89,4 @@ class KubernetesState {
   }
 }
 
-module.exports = KubeState
+module.exports = KubernetesState
