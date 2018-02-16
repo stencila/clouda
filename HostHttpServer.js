@@ -38,15 +38,24 @@ function receive (req, res, ctx, regex, cb) {
 
   let session = null
 
-  // Attempt to get authorization token from request URL or cookie
+  // Attempt to get authorization token from (1) query parameter (2) header (3) cookie
   let token = url.parse(req.url, true).query.token
-  if (!token) token = cookie.parse(req.headers.cookie || '').token
+  if (!token && req.headers.authorization) {
+    const auth = req.headers.authorization
+    const parts = auth.split(' ')
+    if (parts[0] === 'Bearer') {
+      token = parts[1]
+    }
+  }
+  if (!token) {
+    token = cookie.parse(req.headers.cookie || '').token
+  }
   if (token) {
     // Generate a session from token
     try {
       session = jwt.verify(token, TOKEN_SECRET)
     } catch (err) {
-      return error(req, res, ctx, 403, 'Bad token')
+      return error(req, res, ctx, 403, 'Bad token: ' + token)
     }
   } else {
     // If no token then check for ticket in URL
