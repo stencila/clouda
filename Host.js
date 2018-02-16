@@ -345,6 +345,14 @@ class Host {
     }
   }
 
+  open (address, session, cb) {
+    // Temporarily just echos back the session
+    cb(null, {
+      address,
+      session
+    }, session)
+  }
+
   post (type, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 

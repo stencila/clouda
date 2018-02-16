@@ -16,6 +16,7 @@
     "body": "^5.1.0",
     "cookie": "^0.3.1",
     "dockerode": "^2.5.0",
+    "jsonwebtoken": "^8.1.1",
     "kubernetes-client": "^3.14.0",
     "merry": "^5.4.0",
     "path-is-inside": "^1.0.2",

@@ -1,6 +1,6 @@
 const body = require('body')
 const cookie = require('cookie')
-const crypto = require('crypto')
+const jwt = require('jsonwebtoken')
 const merry = require('merry')
 const path = require('path')
 const pathIsInside = require('path-is-inside')
@@ -17,45 +17,12 @@ if (!TICKET) {
 }
 
 /**
- * We use signed JSON objects, stored as Base64 encoded cookies on the client,
- * for persisting session state across calls. We do not use the Jason Web Tokens (JWT) for this
- * as they have security vulnerabilities. We do not use Macroons for this as they are focussed
- * on authorizing capabilities instead of storing state.
+ * Secret for JSON web tokens.
  */
 var TOKEN_SECRET = process.env.TOKEN_SECRET
 if (!TOKEN_SECRET) {
-  if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'a super unsecet key'
+  if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'a super unsecet secret'
   else throw Error('TOKEN_SECRET must be set')
-}
-
-// Generate a signature for a session object
-function signature (session) {
-  return crypto.createHmac('sha256', TOKEN_SECRET).update(JSON.stringify(session)).digest('hex')
-}
-
-// Generate a verified session object from a token
-function sessionInitialize (token, req, res, ctx) {
-  const parts = token.split('.')
-  if (parts.length !== 2) return error(req, res, ctx, 400, 'Malformed token')
-
-  let json = Buffer.from(parts[0], 'base64').toString()
-  let session
-  try {
-    session = JSON.parse(json)
-  } catch (err) {
-    return error(req, res, ctx, 400, 'Malformed token')
-  }
-
-  let signat = Buffer.from(parts[1], 'base64').toString()
-  if (signat !== signature(session)) {
-    return error(req, res, ctx, 403, 'Bad token')
-  }
-  return session
-}
-
-// Generate a token from a session object
-function sessionFinalize (session) {
-  return Buffer.from(JSON.stringify(session)).toString('base64') + '.' + Buffer.from(signature(session)).toString('base64')
 }
 
 // General error functions
@@ -71,11 +38,16 @@ function receive (req, res, ctx, regex, cb) {
 
   let session = null
 
-  // Attempt to get authorization token from cookie
-  let token = cookie.parse(req.headers.cookie || '').token
+  // Attempt to get authorization token from request URL or cookie
+  let token = url.parse(req.url, true).query.token
+  if (!token) token = cookie.parse(req.headers.cookie || '').token
   if (token) {
     // Generate a session from token
-    session = sessionInitialize(token, req, res, ctx)
+    try {
+      session = jwt.verify(token, TOKEN_SECRET)
+    } catch (err) {
+      return error(req, res, ctx, 403, 'Bad token')
+    }
   } else {
     // If no token then check for ticket in URL
     let ticket = url.parse(req.url, true).query.ticket
@@ -84,9 +56,6 @@ function receive (req, res, ctx, regex, cb) {
       else session = {} // Create an empty session
     }
   }
-
-  // Allow null sessions so that manifest can be obtained from a unticketed
-  // GET / - the endpoint which is used by Kubernetes Ingress as a readyness probe
 
   // Get request body and parse it
   body(req, (err, body) => {
@@ -138,7 +107,7 @@ function headers (req, session) {
   if (session && req.method !== 'OPTIONS') {
     // Generate a token from session and set cookie to expire
     // after an hour of inactivity
-    const token = sessionFinalize(session)
+    const token = jwt.sign(session, TOKEN_SECRET)
     headers['Set-Cookie'] = `token=${token}; Max-Age=3600`
   }
 
@@ -162,6 +131,16 @@ class HostHttpServer {
 
     app.route('OPTIONS', '/*', (req, res, ctx) => {
       send(req, res, ctx)
+    })
+
+    app.route('GET', '/open/*', (req, res, ctx) => {
+      receive(req, res, ctx, /open\/(.*)/, (match, session) => {
+        const address = match[1]
+        this._host.open(address, session, (err, result, session) => {
+          if (err) return error(req, res, ctx, 500, err.message)
+          send(req, res, ctx, result, session)
+        })
+      })
     })
 
     app.route('GET', '/*', (req, res, ctx) => {
