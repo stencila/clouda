@@ -21,7 +21,7 @@ if (!TICKET) {
  */
 var TOKEN_SECRET = process.env.TOKEN_SECRET
 if (!TOKEN_SECRET) {
-  if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'a super unsecet secret'
+  if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'secret'
   else throw Error('TOKEN_SECRET must be set')
 }
 
