@@ -346,10 +346,8 @@ class Host {
       })((err, pod) => {
         if (err) return cb(err)
 
-        console.log (session)
         this.lookupUrl(session.pod, (err, url) => {
           if (err) return cb(err)
-          console.log ("A")
           request({
             method: 'GET',
             uri: url,
@@ -357,7 +355,6 @@ class Host {
               Accept: 'application/json'
             }
           }, {retries: 9}, (err, resp, body) => {
-            console.log ("B")
             cb(err, body, session)
           })
         })
