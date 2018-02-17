@@ -21,7 +21,7 @@ if (!TICKET) {
  */
 var TOKEN_SECRET = process.env.TOKEN_SECRET
 if (!TOKEN_SECRET) {
-  if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'secret'
+  if (process.env.NODE_ENV === 'development') TOKEN_SECRET = 'not-a-secret'
   else throw Error('TOKEN_SECRET must be set')
 }
 
@@ -143,8 +143,16 @@ class HostHttpServer {
     })
 
     app.route('GET', '/open/*', (req, res, ctx) => {
-      receive(req, res, ctx, /open\/(.*)/, (match, session) => {
-        const address = match[1]
+      // It is necessary to put the token in the URL for this request
+      // due to way that the client Javascript makes this request so extract it
+      // and put it into a authorization header
+      const match = url.parse(req.url).pathname.match(/open\/([^/]+)\/(.*)/)
+      if (!match) return error(req, res, ctx, 400, 'Bad request')
+      const token = match[1]
+      const address = match[2]
+      req.headers.authorization = 'Bearer ' + token
+      // Then continue on as normal
+      receive(req, res, ctx, /.*/, (match, session) => {
         this._host.open(address, session, (err, result, session) => {
           if (err) return error(req, res, ctx, 500, err.message)
           send(req, res, ctx, result, session)
