@@ -327,7 +327,7 @@ class Host {
               }}, (err, pod) => {
                 if (err) return pino.error(err.message, 'cleanup')
                 
-                k8s.ns.pods.delete({ name: pod.metadata.name, gracePeriodSeconds = POD_GRACE_PERIOD}, (err, pod) => {
+                k8s.ns.pods.delete({ name: pod.metadata.name, gracePeriodSeconds: POD_GRACE_PERIOD }, (err, pod) => {
                   if (err) return pino.error(err.message, 'cleanup')
       
                   pino.info({ pod: pod.metadata.name }, 'deleted (went over time limit)')
