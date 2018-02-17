@@ -38,7 +38,7 @@ class KubernetesState {
             cb(null, state.get(pod))
           }
           else {
-            cb(new Error("Pod not found"))
+            cb(new Error("Pod not found.  Idle timeout or time limit reached."))
           }
         })
       }

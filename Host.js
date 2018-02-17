@@ -28,6 +28,9 @@ const POD_REQUEST_MEM = process.env.POD_REQUEST_MEM || '500Mi' // Just used to l
 const POD_LIMIT_CPU = process.env.POD_LIMIT_CPU || '1000m' // Enforced by kubernetes within 100ms intervals 
 const POD_LIMIT_MEM = process.env.POD_LIMIT_MEM || '1.2Gi' // converted to an integer, and used as the value of the
                                                            // --memory flag in the docker run command
+const POD_LIMIT_OCCUPIED_TIME = process.env.POD_LIMIT_OCCUPIED_TIME || 4 * 3600 * 1000 // Time in ms
+    // that a pod can be occupied before it is terminated automatically
+const POD_GRACE_PERIOD = process.env.POD_GRACE_PERIOD || 10 // grace period (in seconds) before the pod is allowed to be forcefully killed 
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -106,7 +109,8 @@ class Host {
               metadata: {
                 labels: {
                   pool: 'occupied',
-                  acquirer: this._id
+                  acquirer: this._id,
+                  acquiredAt: (new Date()).toISOString()
                 }
               }
             }}, (err, pod) => {
@@ -297,9 +301,10 @@ class Host {
     if (process.env.NODE_ENV === 'development') {
       pino.warn('Host.cleanup not implemented in development mode')
     } else {
-      k8s.ns.pods.get((err, pods) => {
+      k8s.ns.pods.get({ qs: { labelSelector: 'pool!=deleting' } }, (err, pods) => {
         if (err) return pino.error(err.message, 'cleanup')
 
+        let now = new Date();
         let count = 0
         for (let pod of pods.items) {
           if (['Succeeded', 'Failed'].indexOf(pod.status.phase) > -1) {
@@ -308,6 +313,25 @@ class Host {
               if (err) return pino.error(err.message, 'cleanup')
 
               pino.info({ pod: pod.metadata.name }, 'deleted')
+            })
+          }
+          else if (now - pod.metadata.labels[acquiredAt] > POD_LIMIT_OCCUPIED_TIME) {
+            count += 1
+            // Move to deleting pool so we do not try to delete it multiple times
+            k8s.ns.pods(pod.metadata.name).patch({ body: {
+                metadata: {
+                  labels: {
+                    pool: 'deleting'
+                  }
+                }
+              }}, (err, pod) => {
+                if (err) return pino.error(err.message, 'cleanup')
+                
+                k8s.ns.pods.delete({ name: pod.metadata.name, gracePeriodSeconds = POD_GRACE_PERIOD}, (err, pod) => {
+                  if (err) return pino.error(err.message, 'cleanup')
+      
+                  pino.info({ pod: pod.metadata.name }, 'deleted (went over time limit)')
+                })
             })
           }
         }
