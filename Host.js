@@ -25,12 +25,12 @@ const POD_REQUEST_CPU = process.env.POD_REQUEST_MEM || '50m' // As well as limit
     // for all containers this probably does nothing).
 const POD_REQUEST_MEM = process.env.POD_REQUEST_MEM || '500Mi' // Just used to limit pods on the node.
 
-const POD_LIMIT_CPU = process.env.POD_LIMIT_CPU || '1000m' // Enforced by kubernetes within 100ms intervals 
+const POD_LIMIT_CPU = process.env.POD_LIMIT_CPU || '1000m' // Enforced by kubernetes within 100ms intervals
 const POD_LIMIT_MEM = process.env.POD_LIMIT_MEM || '1.2Gi' // converted to an integer, and used as the value of the
                                                            // --memory flag in the docker run command
 const POD_LIMIT_OCCUPIED_TIME = process.env.POD_LIMIT_OCCUPIED_TIME || 4 * 3600 * 1000 // Time in ms
     // that a pod can be occupied before it is terminated automatically
-const POD_GRACE_PERIOD = process.env.POD_GRACE_PERIOD || 10 // grace period (in seconds) before the pod is allowed to be forcefully killed 
+const POD_GRACE_PERIOD = process.env.POD_GRACE_PERIOD || 10 // grace period (in seconds) before the pod is allowed to be forcefully killed
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -70,7 +70,6 @@ class Host {
         if (containers.length === 0) cb(null, null)
         else {
           let container = containers[0]
-          let port = container.Ports[0]
           pino.info({ pod: container.Id }, 'acquired')
 
           cb(null, container.Id)
@@ -304,7 +303,7 @@ class Host {
       k8s.ns.pods.get({ qs: { labelSelector: 'pool!=deleting' } }, (err, pods) => {
         if (err) return pino.error(err.message, 'cleanup')
 
-        let now = new Date();
+        let now = new Date()
         let count = 0
         for (let pod of pods.items) {
           if (['Succeeded', 'Failed'].indexOf(pod.status.phase) > -1) {
@@ -314,24 +313,23 @@ class Host {
 
               pino.info({ pod: pod.metadata.name }, 'deleted')
             })
-          }
-          else if (now - pod.metadata.labels[acquiredAt] > POD_LIMIT_OCCUPIED_TIME) {
+          } else if (now - (pod.metadata.labels['acquiredAt'] || now) > POD_LIMIT_OCCUPIED_TIME) {
             count += 1
             // Move to deleting pool so we do not try to delete it multiple times
             k8s.ns.pods(pod.metadata.name).patch({ body: {
-                metadata: {
-                  labels: {
-                    pool: 'deleting'
-                  }
+              metadata: {
+                labels: {
+                  pool: 'deleting'
                 }
-              }}, (err, pod) => {
+              }
+            }}, (err, pod) => {
+              if (err) return pino.error(err.message, 'cleanup')
+
+              k8s.ns.pods.delete({ name: pod.metadata.name, gracePeriodSeconds: POD_GRACE_PERIOD }, (err, pod) => {
                 if (err) return pino.error(err.message, 'cleanup')
-                
-                k8s.ns.pods.delete({ name: pod.metadata.name, gracePeriodSeconds: POD_GRACE_PERIOD }, (err, pod) => {
-                  if (err) return pino.error(err.message, 'cleanup')
-      
-                  pino.info({ pod: pod.metadata.name }, 'deleted (went over time limit)')
-                })
+
+                pino.info({ pod: pod.metadata.name }, 'deleted (went over time limit)')
+              })
             })
           }
         }
@@ -344,13 +342,12 @@ class Host {
 
   lookupUrl (pod, cb) {
     kubernetesState.getPod(pod, (err, podState) => {
-      if (err) return cb(err);
+      if (err) return cb(err)
 
-      if (podState.status === "Pending") {
+      if (podState.status === 'Pending') {
         // The nodes are full and the pod is waiting
-        cb(new Error("Pod not ready yet"))
-      }
-      else {
+        cb(new Error('Pod not ready yet'))
+      } else {
         cb(null, `http://${podState.ip}:${podState.port}`)
       }
     })
@@ -411,7 +408,7 @@ class Host {
 
     this.lookupUrl(session.pod, (err, url) => {
       if (err) return cb(err)
-      
+
       request({
         method: 'POST',
         uri: url + '/' + type,
@@ -430,7 +427,7 @@ class Host {
 
     this.lookupUrl(session.pod, (err, url) => {
       if (err) return cb(err)
-      
+
       request({
         method: 'PUT',
         uri: url + '/' + address + '!' + method,

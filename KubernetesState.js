@@ -19,36 +19,35 @@ const k8s = new kubernetes.Core({
  * if a pod is still 'pending'
  */
 class KubernetesState {
-  constructor() {
-    this.cached = null;
-    this.cachedAt = null;
+  constructor () {
+    this.cached = null
+    this.cachedAt = null
   }
-  getPod(pod, cb) {
+  getPod (pod, cb) {
     this.get((err, state) => {
-      if (err) return cb(err);
+      if (err) return cb(err)
 
       if (state.has(pod)) {
         cb(null, state.get(pod))
-      }
-      else {
+      } else {
         this.getNow((err, state) => {
-          if (err) return cb(err);
-    
+          if (err) return cb(err)
+
           if (state.has(pod)) {
             cb(null, state.get(pod))
-          }
-          else {
-            cb(new Error("Pod not found.  Idle timeout or time limit reached."))
+          } else {
+            cb(new Error('Pod not found.  Idle timeout or time limit reached.'))
           }
         })
       }
     })
   }
   get (cb) {
-    if (this.cachedAt === null || (new Date() - this.cachedAt) > EXPIRE_KUBE_STATE)
-    this.getNow(cb)
-    else
-      cb(null, cached)
+    if (this.cachedAt === null || (new Date() - this.cachedAt) > EXPIRE_KUBERNETES_STATE) {
+      this.getNow(cb)
+    } else {
+      cb(null, this.cached)
+    }
   }
   getNow (cb) {
     if (process.env.NODE_ENV === 'development') {
@@ -57,8 +56,8 @@ class KubernetesState {
       }, function (err, containers) {
         if (err) return cb(err)
 
-        var result = new Map();
-        containers.forEach( container =>
+        var result = new Map()
+        containers.forEach(container =>
           result.set(container.Id, {
             ip: container.Ports[0].IP,
             port: container.Ports[0].PublicPort,
@@ -73,8 +72,8 @@ class KubernetesState {
       k8s.ns.pods.get((err, pods) => {
         if (err) return cb(err)
 
-        var result = new Map();
-        pods.forEach( pod =>
+        var result = new Map()
+        pods.forEach(pod =>
           result.set(pod.metadata.name, {
             ip: pod.status.podIP,
             port: 2000,
