@@ -7,13 +7,30 @@ const request = require('retry-request')
 
 const version = require('./package.json').version
 const HostHttpServer = require('./HostHttpServer')
+const KubernetesState = require('./KubernetesState')
+const kubernetesState = new KubernetesState()
 
 // Configuration settings
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/core'
-const POD_TIMEOUT = 3600 // seconds
-const STANDBY_POOL = 10 // target number of containers in the standby pool
-const STANDBY_FREQ = 30000 // fill the standby pool every x milliseconds
-const CLEANUP_FREQ = 120000 // cleanup terminated pods every x milliseconds
+const POD_TIMEOUT = process.env.POD_TIMEOUT || 3600 // seconds
+const STANDBY_POOL = process.env.STANDBY_POOL || 10 // target number of containers in the standby pool
+const STANDBY_FREQ = process.env.STANDBY_FREQ || 30000 // fill the standby pool every x milliseconds
+const CLEANUP_FREQ = process.env.CLEANUP_FREQ || 120000 // cleanup terminated pods every x milliseconds
+
+// The kubernetes scheduler ensures that, for each resource type, the sum of the resource requests of the scheduled
+// Containers is less than the capacity of the node.
+// For the the CPU values m is millicores (1000m is 100% of one CPU core)
+const POD_REQUEST_CPU = process.env.POD_REQUEST_MEM || '50m' // As well as limiting pods on the node this is also passed
+    // to docker's --cpu-shares controling the relative weighting of containers (since we are setting it to the same value
+    // for all containers this probably does nothing).
+const POD_REQUEST_MEM = process.env.POD_REQUEST_MEM || '500Mi' // Just used to limit pods on the node.
+
+const POD_LIMIT_CPU = process.env.POD_LIMIT_CPU || '1000m' // Enforced by kubernetes within 100ms intervals 
+const POD_LIMIT_MEM = process.env.POD_LIMIT_MEM || '1.2Gi' // converted to an integer, and used as the value of the
+                                                           // --memory flag in the docker run command
+const POD_LIMIT_OCCUPIED_TIME = process.env.POD_LIMIT_OCCUPIED_TIME || 4 * 3600 * 1000 // Time in ms
+    // that a pod can be occupied before it is terminated automatically
+const POD_GRACE_PERIOD = process.env.POD_GRACE_PERIOD || 10 // grace period (in seconds) before the pod is allowed to be forcefully killed 
 
 // During development, Docker is used to create session containers
 const docker = new Docker({
@@ -56,8 +73,7 @@ class Host {
           let port = container.Ports[0]
           pino.info({ pod: container.Id }, 'acquired')
 
-          let url = `http://${port.IP}:${port.PublicPort}`
-          cb(null, url)
+          cb(null, container.Id)
         }
       })
     } else {
@@ -93,7 +109,8 @@ class Host {
               metadata: {
                 labels: {
                   pool: 'occupied',
-                  acquirer: this._id
+                  acquirer: this._id,
+                  acquiredAt: (new Date()).toISOString()
                 }
               }
             }}, (err, pod) => {
@@ -101,8 +118,7 @@ class Host {
 
               pino.info({ pod: pod.metadata.name }, 'acquired')
 
-              let url = `http://${pod.status.podIP}:2000`
-              cb(null, url)
+              cb(null, pod.metadata.name)
             })
           } else {
             // Another host claimed this pod just after this
@@ -155,7 +171,7 @@ class Host {
               pod: container.id,
               port: port
             }, 'started')
-            cb(null, `http://127.0.0.1:${port}`)
+            cb(null, container.id)
           })
         })
       })
@@ -187,12 +203,12 @@ class Host {
 
             resources: {
               requests: {
-                memory: '500Mi',
-                cpu: '50m'
+                memory: POD_REQUEST_MEM,
+                cpu: POD_REQUEST_CPU
               },
               limits: {
-                memory: '1.2Gi',
-                cpu: '1000m'
+                memory: POD_LIMIT_MEM,
+                cpu: POD_LIMIT_CPU
               }
             },
 
@@ -212,7 +228,7 @@ class Host {
 
             if (pod.status.phase === 'Running') {
               pino.info({ pod: pod.metadata.name }, 'started')
-              cb(null, `http://${pod.status.podIP}:${port}`)
+              cb(null, pod.metadata.name)
             } else setTimeout(awaitPod, 300)
           })
         }
@@ -285,9 +301,10 @@ class Host {
     if (process.env.NODE_ENV === 'development') {
       pino.warn('Host.cleanup not implemented in development mode')
     } else {
-      k8s.ns.pods.get((err, pods) => {
+      k8s.ns.pods.get({ qs: { labelSelector: 'pool!=deleting' } }, (err, pods) => {
         if (err) return pino.error(err.message, 'cleanup')
 
+        let now = new Date();
         let count = 0
         for (let pod of pods.items) {
           if (['Succeeded', 'Failed'].indexOf(pod.status.phase) > -1) {
@@ -298,12 +315,45 @@ class Host {
               pino.info({ pod: pod.metadata.name }, 'deleted')
             })
           }
+          else if (now - pod.metadata.labels[acquiredAt] > POD_LIMIT_OCCUPIED_TIME) {
+            count += 1
+            // Move to deleting pool so we do not try to delete it multiple times
+            k8s.ns.pods(pod.metadata.name).patch({ body: {
+                metadata: {
+                  labels: {
+                    pool: 'deleting'
+                  }
+                }
+              }}, (err, pod) => {
+                if (err) return pino.error(err.message, 'cleanup')
+                
+                k8s.ns.pods.delete({ name: pod.metadata.name, gracePeriodSeconds: POD_GRACE_PERIOD }, (err, pod) => {
+                  if (err) return pino.error(err.message, 'cleanup')
+      
+                  pino.info({ pod: pod.metadata.name }, 'deleted (went over time limit)')
+                })
+            })
+          }
         }
         pino.info({ count: count }, 'deleted_pods')
 
         setTimeout(() => this.cleanup(), CLEANUP_FREQ)
       })
     }
+  }
+
+  lookupUrl (pod, cb) {
+    kubernetesState.getPod(pod, (err, podState) => {
+      if (err) return cb(err);
+
+      if (podState.status === "Pending") {
+        // The nodes are full and the pod is waiting
+        cb(new Error("Pod not ready yet"))
+      }
+      else {
+        cb(null, `http://${podState.ip}:${podState.port}`)
+      }
+    })
   }
 
   manifest (session, cb) {
@@ -332,14 +382,17 @@ class Host {
       })((err, pod) => {
         if (err) return cb(err)
 
-        request({
-          method: 'GET',
-          uri: pod,
-          headers: {
-            Accept: 'application/json'
-          }
-        }, {retries: 9}, (err, resp, body) => {
-          cb(err, body, session)
+        this.lookupUrl(session.pod, (err, url) => {
+          if (err) return cb(err)
+          request({
+            method: 'GET',
+            uri: url,
+            headers: {
+              Accept: 'application/json'
+            }
+          }, {retries: 9}, (err, resp, body) => {
+            cb(err, body, session)
+          })
         })
       })
     }
@@ -356,30 +409,38 @@ class Host {
   post (type, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
-    request({
-      method: 'POST',
-      uri: session.pod + '/' + type,
-      headers: {
-        Accept: 'application/json'
-      },
-      body: body
-    }, {retries: 9}, (err, res, body) => {
-      cb(err, body, session)
+    this.lookupUrl(session.pod, (err, url) => {
+      if (err) return cb(err)
+      
+      request({
+        method: 'POST',
+        uri: url + '/' + type,
+        headers: {
+          Accept: 'application/json'
+        },
+        body: body
+      }, {retries: 9}, (err, res, body) => {
+        cb(err, body, session)
+      })
     })
   }
 
   put (address, method, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
-    request({
-      method: 'PUT',
-      uri: session.pod + '/' + address + '!' + method,
-      headers: {
-        Accept: 'application/json'
-      },
-      body: body
-    }, (err, res, body) => {
-      cb(err, body, session)
+    this.lookupUrl(session.pod, (err, url) => {
+      if (err) return cb(err)
+      
+      request({
+        method: 'PUT',
+        uri: url + '/' + address + '!' + method,
+        headers: {
+          Accept: 'application/json'
+        },
+        body: body
+      }, (err, res, body) => {
+        cb(err, body, session)
+      })
     })
   }
 
