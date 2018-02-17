@@ -13,11 +13,15 @@ lint:
 	# Check code for lint code
 	npm run lint
 
-build:
+build: lint
 	# Build the stencila/cloud image
 	docker build . --tag stencila/cloud
 
-deploy: build
+check: build
+	# For now, just check that the code actually runs (other checks to be added)
+	docker run --rm --env TICKET='platypus' --env TOKEN_SECRET='not-a-secret' stencila/cloud node Host.js
+
+deploy: check
 	# Deploy the stencila/cloud image
 	docker push stencila/cloud
 
