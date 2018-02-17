@@ -10,6 +10,8 @@ lint:
 build:
 	docker build . --tag stencila/cloud
 
+deploy: build
+	docker push stencila/cloud
 
 # Run locally in development mode
 run:
