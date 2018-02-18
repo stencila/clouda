@@ -422,7 +422,7 @@ class Host {
     })
   }
 
-  put (address, method, body, session, cb) {
+  put (instance, method, body, session, cb) {
     if (!session.pod) return cb(new Error('Session has not been initialised yet'))
 
     this.lookupUrl(session.pod, (err, url) => {
@@ -430,7 +430,7 @@ class Host {
 
       request({
         method: 'PUT',
-        uri: url + '/' + address + '!' + method,
+        uri: url + '/' + instance + '!' + method,
         headers: {
           Accept: 'application/json'
         },

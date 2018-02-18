@@ -198,9 +198,9 @@ class HostHttpServer {
     app.route('PUT', '/*', (req, res, ctx) => {
       receive(req, res, ctx, /\/([^!]+)!(.+)/, (match, session, body) => {
         if (!session) return error(req, res, ctx, 401, 'Authentication required')
-        const address = match[1]
+        const instance = match[1]
         const method = match[2]
-        this._host.put(address, method, body, session, (err, result, session) => {
+        this._host.put(instance, method, body, session, (err, result, session) => {
           if (err) return error(req, res, ctx, 500, err.message)
           send(req, res, ctx, result, session)
         })
