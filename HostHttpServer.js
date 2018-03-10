@@ -149,11 +149,11 @@ class HostHttpServer {
       const match = url.parse(req.url).pathname.match(/open\/([^/]+)\/(.*)/)
       if (!match) return error(req, res, ctx, 400, 'Bad request')
       const token = match[1]
-      const address = match[2]
+      const project = match[2]
       req.headers.authorization = 'Bearer ' + token
       // Then continue on as normal
       receive(req, res, ctx, /.*/, (match, session) => {
-        this._host.open(address, session, (err, result, session) => {
+        this._host.open(project, session, (err, result, session) => {
           if (err) return error(req, res, ctx, 500, err.message)
           send(req, res, ctx, result, session)
         })

@@ -381,6 +381,7 @@ class Host {
 
         this.lookupUrl(session.pod, (err, url) => {
           if (err) return cb(err)
+
           request({
             method: 'GET',
             uri: url,
@@ -395,12 +396,29 @@ class Host {
     }
   }
 
-  open (address, session, cb) {
-    // Temporarily just echos back the session
-    cb(null, {
-      address,
-      session
-    }, session)
+  open (project, session, cb) {
+    // Opening a project requires a new pod for it
+    this.demand((err, pod) => {
+      if (err) return cb(err)
+
+      session.pod = pod
+      this.lookupUrl(session.pod, (err, url) => {
+        if (err) return cb(err)
+
+        request({
+          method: 'GET',
+          uri: url + '/open/' + project,
+          headers: {
+            Accept: 'application/json'
+          }
+        }, {retries: 1}, (err, res, body) => {
+          if (err) pino.error(err)
+          pino.info('Yo3')
+
+          cb(err, body, session)
+        })
+      })
+    })
   }
 
   post (type, body, session, cb) {
