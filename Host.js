@@ -7,8 +7,8 @@ const request = require('retry-request')
 
 const version = require('./package.json').version
 const HostHttpServer = require('./HostHttpServer')
-const KubernetesState = require('./KubernetesState')
-const kubernetesState = new KubernetesState()
+const Cluster = require('./Cluster')
+const cluster = new Cluster()
 
 // Configuration settings
 const STENCILA_IMAGE = process.env.STENCILA_IMAGE || 'stencila/core'
@@ -341,7 +341,7 @@ class Host {
   }
 
   lookupUrl (pod, cb) {
-    kubernetesState.getPod(pod, (err, podState) => {
+    cluster.getPod(pod, (err, podState) => {
       if (err) return cb(err)
 
       if (podState.status === 'Pending') {

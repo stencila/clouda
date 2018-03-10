@@ -18,7 +18,7 @@ const k8s = new kubernetes.Core({
  * Caches Kubernetes state so that we can use it to determine
  * if a pod is still 'pending'
  */
-class KubernetesState {
+class Cluster {
   constructor () {
     this.cached = null
     this.cachedAt = null
@@ -88,4 +88,4 @@ class KubernetesState {
   }
 }
 
-module.exports = KubernetesState
+module.exports = Cluster
