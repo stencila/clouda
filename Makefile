@@ -21,7 +21,7 @@ check: build
 	npm run deps-used
 	npm run deps-uptodate
 	# For now, just check that the code actually runs (other checks to be added)
-	docker run --rm --env TICKET='platypus' --env TOKEN_SECRET='not-a-secret' stencila/cloud node Host.js
+	docker run --rm --env TICKET='platypus' --env TOKEN_SECRET='not-a-secret' stencila/cloud node lib/Host.js
 
 deploy: check
 	# Deploy the stencila/cloud image

@@ -13,18 +13,23 @@ RUN apt-get update \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/
 
-# Install docker to have a docker client for building Docker images
-RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_17.03.0~ce-0~debian-jessie_amd64.deb \
+# Install docker to have a docker client for building (for custom images based off repos)
+# and running (when dev testing this image) Docker images
+# For latest release see https://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/
+RUN curl -o docker.deb https://download.docker.com/linux/debian/dists/jessie/pool/stable/amd64/docker-ce_18.03.1~ce-0~debian_amd64.deb \
  && dpkg -i docker.deb \
  && rm docker.deb
 
 # Install kubctrl for accessing the Kubernetes API
 # See https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
-RUN curl -L -o /bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.6.4/bin/linux/amd64/kubectl \
+# For latest release see https://github.com/kubernetes/kubernetes/releases
+RUN curl -L -o /bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.10.5/bin/linux/amd64/kubectl \
  && chmod +x /bin/kubectl
 
-RUN mkdir /usr/app 
-WORKDIR /usr/app
+# Run as non-root user
+RUN useradd -m cloud
+WORKDIR /home/cloud
+USER cloud
 
 # Just copy `package.json` for `npm install` so that it
 # is not re-run when an unrelated file is changed
