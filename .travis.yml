@@ -12,5 +12,4 @@ cache:
 
 script:
   - make setup
-  - make lint
-  - make build
+  - make check
