@@ -23,10 +23,8 @@
     "jsonwebtoken": "^8.3.0",
     "kubernetes-client": "^5.3.0",
     "merry": "^5.5.2",
-    "path-is-inside": "^1.0.2",
     "pino": "^4.17.3",
     "random-port": "^0.1.0",
-    "retry-request": "^4.0.0",
-    "send": "^0.16.2"
+    "retry-request": "^4.0.0"
   }
 }
