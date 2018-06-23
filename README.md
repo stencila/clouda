@@ -5,23 +5,15 @@
 [![Community](https://img.shields.io/badge/join-community-green.svg)](https://community.stenci.la)
 [![Chat](https://badges.gitter.im/stencila/stencila.svg)](https://gitter.im/stencila/stencila)
 
+## Purpose
+
 A Stencila `Host` which creates execution `Contexts` and other resources within Docker containers on a Kubernetes cluster. 
 
-**This repo is undergoing a major refactoring to integrate it better with other parts of the Stencila platform. Lots of things are broken but we're working on it!**
+## Install
 
-### Install
+See [`minikube.yaml`](minikube.yaml) for an example deployment.
 
-```sh
-npm install stencila-cloud
-```
-
-### Use
-
-```sh
-npm run serve
-```
-
-### Develop
+## Develop
 
 Quickstart:
 
@@ -29,7 +21,6 @@ Quickstart:
 git clone https://github.com/stencila/cloud.git
 cd cloud
 npm install
-npm run watch
 npm start
 ```
 
@@ -37,21 +28,71 @@ Most development tasks can be run directly from `npm` or via `make` recipes (we
 use Makefiles to provide similar, convenient development commands across
 Stencila repos using different languages with different tooling).
 
-Task                              | `npm`                 | `make`          |
-----------------------------------|-----------------------|-----------------|
-Install dependencies              | `npm install`         | `make setup`
-Run tests                         | `npm test`            | `make test`
-Build client during development   | `npm run watch`       | `make watch`
-Run server during development     | `npm start`           | `make run`
-Build client for production       | `npm run build`       | `make build`
-Run server in production          | `npm run serve`       | `make serve`
+Task                       | `npm`                                | `make`          |
+---------------------------|--------------------------------------|-----------------|
+Install dependencies       | `npm install`                        | `make setup`
+Check for lint             | `npm run lint`                       | `make lint`
+Run during development     | `NODE_ENV='development' npm start`   | `make run`
+Run in production          | `npm start`                          | `make run-prod`
 
-### See Also
 
-- [stencila/images](https://github.com/stencila/images)
-- [stencila/cli](https://github.com/stencila/cli)
-- [stencila/desktop](https://github.com/stencila/desktop)
+### Local development
 
-### License
+You can try out this stencila/stencila:
 
-Apache-2.0
+```bash
+STENCILA_PEERS="http://127.0.0.1:2000" npm start
+```
+
+### Docker testing
+
+```bash
+make run-docker
+```
+
+### Minikube testing
+
+Install [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/) and [`kubectrl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Then start the Minikube cluster
+
+```bash
+minikube start
+```
+
+Deploy to the cluster,
+
+```bash
+make deploy-minikube
+```
+
+Check the `Deployment` is ready (the dashboard can be useful for this too: `minikube dashboard`),
+
+```sh
+kubectl get deployments
+
+NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+sibyl              1         1         1            1           1h
+```
+
+You can then get the URL of the host:,
+
+```sh
+minikube service stencila-cloud-server --url
+```
+
+And check that it responds:
+
+```sh
+curl $(minikube service stencila-cloud-server --url)
+```
+
+Then in your stencila/stencila directory, 
+
+```bash
+STENCILA_PEERS=$(minikube service stencila-cloud-server --url) npm start
+```
+
+If you're developing the Docker images in the [`stencila/images`](http://github.com/stencila/images) repo you can save time (and bandwidth) by not pushing/pulling images to/from the Docker Hub registry and the Minikube cluster. To do that, configure your local Docker client to use the Docker engine running inside the Minikube cluster:
+
+```bash
+eval $(minikube docker-env)
+```
