@@ -4,7 +4,7 @@
   "description": "Stencila in the cloud",
   "scripts": {
     "lint": "standard",
-    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then nodemon serve.js | merry; else node serve.js; fi"
+    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then nodemon lib/serve.js | merry; else node lib/serve.js; fi"
   },
   "repository": "https://github.com/stencila/cloud",
   "license": "Apache-2.0",
