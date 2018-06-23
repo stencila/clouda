@@ -4,7 +4,8 @@ const request = require('retry-request')
 
 const version = require('./package.json').version
 const HostHttpServer = require('./HostHttpServer')
-const Cluster = require('./Cluster')
+
+const Cluster = require(process.env.NODE_ENV === 'development' ? './DockerCluster' : './KubernetesCluster')
 const cluster = new Cluster()
 
 /**
