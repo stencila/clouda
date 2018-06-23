@@ -4,7 +4,7 @@
   "description": "Stencila in the cloud",
   "scripts": {
     "lint": "standard",
-    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then nodemon lib/serve.js | merry; else node lib/serve.js; fi",
+    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then nodemon lib/serve.js; else node lib/serve.js; fi",
     "deps-uptodate": "ncu",
     "deps-used": "dependency-check --entry lib/serve.js . && dependency-check --extra --no-dev --entry lib/serve.js ."
   },
@@ -17,14 +17,15 @@
     "standard": "^11.0.1"
   },
   "dependencies": {
-    "body": "^5.1.0",
     "cookie": "^0.3.1",
     "dockerode": "^2.5.5",
     "jsonwebtoken": "^8.3.0",
+    "koa": "^2.5.1",
+    "koa-router": "^7.4.0",
     "kubernetes-client": "^5.3.0",
-    "merry": "^5.5.2",
     "pino": "^4.17.3",
     "random-port": "^0.1.0",
+    "raw-body": "^2.3.3",
     "retry-request": "^4.0.0"
   }
 }
