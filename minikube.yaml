@@ -26,7 +26,7 @@ spec:
               value: REDEPLOY_DATETIME_
             - name: TICKET
               value: 'platypus'
-            - name: TOKEN_SECRET
+            - name: JWT_SECRET
               value: 'in production this should actually be a secret'
             - name: DOCKER_HOST
               value: tcp://127.0.0.1:2375
