@@ -1,4 +1,8 @@
-# Minikube deployment
+# An example Minikube deployment
+# 
+# Note that this includes components such as `docker-container`
+# and `registry-container` that can be used for building custom
+# images but which are currently not used.
 
 # Deployment of the stencila/cloud image
 

@@ -1,0 +1,38 @@
+# An example Kubernetes deploymnet
+
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: stencila-cloud-deployment
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: stencila-cloud-app
+    spec:
+      containers:
+        - name: server-container
+          image: stencila/cloud
+          env:
+            - name: TICKET
+              value: 'in production this should actually a secret ticket'
+            - name: JWT_SECRET
+              value: 'in production this should actually be a secret'
+          ports:
+            - containerPort: 2000
+
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: stencila-cloud-server
+spec:
+  type: NodePort
+  selector:
+    app: stencila-cloud-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 2000
