@@ -35,7 +35,7 @@ run-prod:
 	# Run locally in production mode
 	npm start
 
-run-docker:
+run-docker: build
 	# Run within a stencila/cloud container
 	#  `-it` option so that can use Ctrl+C to stop
 	#  `--rm` to do clean up
