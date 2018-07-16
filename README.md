@@ -11,7 +11,7 @@ In Stencila, execution `Contexts` are provided by a `Host` (if you are familiar 
 
 This package, `stencila/cloud`, implements the Stencila `Host` API for running alternative execution `Environments` as Docker containers within a Kubernetes cluster. It is intended as a way of providing users of Stencila with an easy way to render Stencila documents withing alternative execution environments, without having to install packages themselves, or install and run Docker.
 
-[screenshot.png]
+![](screenshot.png)
 _An example of a document using a `RContext`, hosted within the `stencila/core` execution environment, provided by `stencila/cloud`._
 
 ## Install and deploy
