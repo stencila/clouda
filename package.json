@@ -23,7 +23,6 @@
     "koa": "^2.5.1",
     "koa-router": "^7.4.0",
     "kubernetes-client": "^5.3.0",
-    "moniker": "^0.1.2",
     "pino": "^4.17.3",
     "random-port": "^0.1.0",
     "raw-body": "^2.3.3",
