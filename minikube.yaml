@@ -114,3 +114,20 @@ spec:
       port: 5000
       targetPort: 5000
 
+---
+
+# Allow the default service account to access the k8s API to manage cluster
+# https://github.com/fabric8io/fabric8/issues/6840#issuecomment-307560275
+# https://github.com/heptio/aws-quickstart/issues/75#issuecomment-315433745
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: stencila-cloud-crb
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
