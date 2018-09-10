@@ -25,6 +25,7 @@
     "kubernetes-client": "^5.3.0",
     "pino": "^4.17.3",
     "random-port": "^0.1.0",
+    "raven": "^2.6.4",
     "raw-body": "^2.3.3",
     "retry-request": "^4.0.0"
   }
