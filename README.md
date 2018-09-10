@@ -55,15 +55,9 @@ or in production mode,
 npm start # or make run-prod
 ```
 
-### Run with Docker
-
-You can also run the `Host` within a Docker container
-
-```bash
-make run-docker
-```
-
 ### Run with Minikube
+
+You can run the sever locally but get it to create new session pods within an Minikube cluster. 
 
 Install [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/) and [`kubectl`](https://kubernetes.io/docs/tasks/tools/install-kubectl/). Then start the Minikube cluster,
 
@@ -71,7 +65,21 @@ Install [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/) a
 minikube start
 ```
 
-Deploy `stencila/cloud` to the cluster,
+```bash
+env CLUSTER='k8s' NODE_ENV='development' npm start
+```
+
+### Run inside Docker
+
+You can also run the `Host` within a Docker container
+
+```bash
+make run-docker
+```
+
+## Run inside Minikube
+
+Deploy `stencila/cloud` to the Minikube cluster,
 
 ```bash
 make run-minikube
