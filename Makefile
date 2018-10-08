@@ -3,7 +3,7 @@
 # Put comment inside recipes so that it is easier
 # for users to understand what is being run and what is failing
 
-all: setup lint test build
+all: setup lint test build docs
 
 setup:
 	# Install Node.js packages

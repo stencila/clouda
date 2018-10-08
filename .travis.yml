@@ -14,7 +14,7 @@ services:
 script:
   - make lint
   - make cover
-  - make check
+  - make build
   - make docs
 
 # Upload test coverage to codecov
