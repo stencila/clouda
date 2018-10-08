@@ -3,11 +3,15 @@
 # Put comment inside recipes so that it is easier
 # for users to understand what is being run and what is failing
 
-all: setup lint build
+all: setup lint test build
 
 setup:
 	# Install Node.js packages
 	npm install
+
+hooks:
+	# Install pre commit git hooks
+	cp pre-commit.sh .git/hooks/pre-commit
 
 lint:
 	# Check code for lint code
@@ -15,8 +19,15 @@ lint:
 	npm run deps-used
 	npm run deps-uptodate
 
+test:
+	npm test
+
+cover:
+	npm run cover
+
 build:
-	# Build the stencila/cloud image
+	# Build the Javascript distribution and stencila/cloud image
+	npm run build
 	docker build . --tag stencila/cloud
 
 check: build
@@ -51,3 +62,7 @@ run-minikube:
 	eval $$(minikube docker-env) && docker build . --tag stencila/cloud
 	# Force a redeploy of container(s) by changing REDEPLOY_DATETIME_ env var
 	sed "s!REDEPLOY_DATETIME_.*!REDEPLOY_DATETIME_$$(date +%Y-%m-%dT%H:%M:%S%z)!g" minikube.yaml | kubectl apply -f -
+
+docs:
+	npm run docs
+.PHONY: docs

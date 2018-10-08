@@ -34,7 +34,7 @@ USER cloud
 # Just copy `package.json` for `npm install` so that it
 # is not re-run when an unrelated file is changed
 COPY package.json .
-RUN npm install
+RUN npm install --production
 
 # Now copy over everything
 COPY . .
