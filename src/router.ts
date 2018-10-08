@@ -19,6 +19,6 @@ function run (method: string) {
 }
 
 router.put('/compile', run('compile'))
-router.put('/compile', run('execute'))
+router.put('/execute', run('execute'))
 
 export default router

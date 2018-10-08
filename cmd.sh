@@ -5,4 +5,4 @@
 kubectl proxy --port=8000 &
 
 # Start the server
-npm start
+node dist/server.js

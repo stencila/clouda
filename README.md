@@ -46,13 +46,13 @@ Run on a Minikube cluster  |                                      | `make run-mi
 Run the `Host` locally in development mode,
 
 ```bash
-NODE_ENV='development' npm start # or make run
+NODE_ENV='development' npm start # or, make run
 ```
 
 or in production mode,
 
 ```bash
-npm start # or make run-prod
+npm start # or, make run-prod
 ```
 
 ### Run with Minikube

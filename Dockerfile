@@ -39,7 +39,7 @@ RUN npm install --production
 # Now copy over everything
 COPY . .
 
-# Expose HostHttpServer.js port
+# Expose server.js port
 EXPOSE 2000
 
 CMD ["bash", "cmd.sh"]

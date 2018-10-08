@@ -30,11 +30,7 @@ build:
 	npm run build
 	docker build . --tag stencila/cloud
 
-check: build
-	# For now, just check that the code actually runs (other checks to be added)
-	docker run --rm --env TICKET='platypus' --env JWT_SECRET='not-a-secret' stencila/cloud node lib/Host.js
-
-deploy: check
+deploy: build
 	# Deploy the stencila/cloud image
 	docker push stencila/cloud
 
