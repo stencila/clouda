@@ -162,7 +162,11 @@ interface PodRequest {
   spec: PodRequestSpec
 }
 
-export class KubernetesCluster {
+export interface ICluster {
+  spawn (environId: string, reason: string): Promise<string>
+}
+
+export class KubernetesCluster implements ICluster {
   private _k8s: Api
   private _options: KubernetesClusterOptions
   private _list?: Map<string, SessionDescription>

@@ -1,11 +1,11 @@
 import { SoftwareSession } from './context'
-import { KubernetesCluster, CONTAINER_MAP } from './KubernetesCluster'
+import { ICluster, CONTAINER_MAP } from './KubernetesCluster'
 
 /**
  * A compiler for JSON-LD `SoftwareSession` nodes targeting Kubernetes
  */
 export default class KubernetesCompiler {
-  constructor (private cluster: KubernetesCluster) {
+  constructor (private cluster: ICluster) {
   }
 
   /**
@@ -42,6 +42,7 @@ export default class KubernetesCompiler {
    * inserted into the session in it's `urls` property.
    *
    * @param session  The JSON-LD session to be compiled
+   * @param baseUrl  The base URL for the request invoking this method
    */
   async execute (session: SoftwareSession, baseUrl: string): Promise<SoftwareSession> {
     session = await this.compile(session)
