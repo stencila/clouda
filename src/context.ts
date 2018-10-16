@@ -11,6 +11,19 @@ type Text = string
 type URL = Text
 type DateTime = string // https://schema.org/DateTime
 
+interface MemoryAllocation {
+  limit: number
+  reservation?: number
+}
+
+interface CpuAllocation {
+  shares: number
+}
+
+interface NetworkTransferAllocation {
+  limit: number
+}
+
 /**
  * A session (i.e. a container) within a software environment (i.e. an image)
  *
@@ -26,6 +39,10 @@ type DateTime = string // https://schema.org/DateTime
  * - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.12/#container-v1-core
  */
 export class SoftwareSession {
+  public ram?: MemoryAllocation
+  public cpu?: CpuAllocation
+  public network?: NetworkTransferAllocation
+
   constructor (public readonly environment: SoftwareEnvironment, public urls: Array<URL> = []) {
   }
 }
