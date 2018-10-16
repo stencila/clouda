@@ -1,20 +1,38 @@
-import { SoftwareSession, SoftwareEnvironment } from './types'
+import { SoftwareSession } from './context'
+import { KubernetesCluster, CONTAINER_MAP } from './KubernetesCluster'
 
 /**
- * A compiler for JSON-LD `SoftwareSession` nodes targetting Kubernetes
+ * A compiler for JSON-LD `SoftwareSession` nodes targeting Kubernetes
  */
 export default class KubernetesCompiler {
+  constructor (private cluster: KubernetesCluster) {
+  }
+
   /**
    * Compiles a session so it is ready for execution
    *
    * This involves resolving, and possibly compiling,
-   * the node's `environment` property. Other properties
+   * the session's `environment` property. Other properties
    * such as `cpu` share etc may need to be compiled also.
    *
-   * @param node The JSON-LD node to be compiled
+   * @param session The JSON-LD session to be compiled
    */
-  async compile (node: SoftwareSession): Promise<SoftwareSession> {
-    return node
+  async compile (session: SoftwareSession): Promise<SoftwareSession> {
+    if (!session.urls) {
+      session.urls = []
+    }
+
+    if (!session.environment.image) {
+      let container = CONTAINER_MAP.get(session.environment.id)
+
+      if (!container) {
+        throw new TypeError(`No container is defined with environment id ${session.environment.id}`)
+      }
+
+      session.environment.image = container.image
+    }
+
+    return session
   }
 
   /**
@@ -23,11 +41,15 @@ export default class KubernetesCompiler {
    * A session container is created on the cluster and its id
    * inserted into the session in it's `urls` property.
    *
-   * @param node  The JSON-LD node to be compiled
+   * @param session  The JSON-LD session to be compiled
    */
-  async execute (node: SoftwareSession): Promise<SoftwareSession> {
-    node = await this.compile(node)
+  async execute (session: SoftwareSession, baseUrl: string): Promise<SoftwareSession> {
+    session = await this.compile(session)
 
-    return node
+    let sessionId = await this.cluster.spawn(session.environment.id, 'demanded')
+
+    session.urls.push(`${baseUrl}/sessions/${sessionId}`)
+
+    return session
   }
 }

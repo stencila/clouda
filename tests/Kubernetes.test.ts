@@ -1,5 +1,5 @@
 import {default as Compiler } from '../src/KubernetesCompiler'
-import {SoftwareSession as Session } from '../src/types'
+import {SoftwareSession as Session } from '../src/context'
 
 test('compile', async () => {
   const compiler = new Compiler()
