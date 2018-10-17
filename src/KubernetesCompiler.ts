@@ -47,7 +47,7 @@ export default class KubernetesCompiler {
   async execute (session: SoftwareSession, baseUrl: string): Promise<SoftwareSession> {
     session = await this.compile(session)
 
-    let sessionId = await this.cluster.spawn(session.environment.id, 'demanded')
+    let sessionId = await this.cluster.spawn(session, 'demanded')
 
     session.urls.push(`${baseUrl}/sessions/${sessionId}`)
 

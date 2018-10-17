@@ -1,16 +1,18 @@
+import { SoftwareSession } from './context'
+
 const crypto = require('crypto')
 const pino = require('pino')()
 import { config as k8sconfig, Client1_10, Api, ApiV1NamespacesNamePods } from 'kubernetes-client'
 
 const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE || 'stencila/core'
 const DEFAULT_PORT = 2000
-const POD_REQUEST_CPU = process.env.POD_REQUEST_MEM || '50m' // As well as limiting pods on the node this is also passed
+const POD_REQUEST_CPU = parseFloat(process.env.POD_REQUEST_MEM || '') || 50 // As well as limiting pods on the node this is also passed
 // to docker's --cpu-shares controlling the relative weighting of containers (since we are setting it to the same value
 // for all containers this probably does nothing).
-const POD_REQUEST_MEM = process.env.POD_REQUEST_MEM || '50Mi' // Just used to limit pods on the node.
+const POD_REQUEST_MEM = parseFloat(process.env.POD_REQUEST_MEM || '') || (50 / 1024) // Just used to limit pods on the node.
 
-const POD_LIMIT_CPU = process.env.POD_LIMIT_CPU || '1000m' // Enforced by kubernetes within 100ms intervals
-const POD_LIMIT_MEM = process.env.POD_LIMIT_MEM || '1.2Gi' // converted to an integer, and used as the value of the
+const POD_LIMIT_CPU = parseFloat(process.env.POD_LIMIT_CPU || '') || 1000 // Enforced by kubernetes within 100ms intervals
+const POD_LIMIT_MEM = parseFloat(process.env.POD_LIMIT_MEM || '') || 1.2 // converted to an integer, and used as the value of the
 // --memory flag in the docker run command
 
 // Inter-pod affinity for session pods
@@ -162,8 +164,45 @@ interface PodRequest {
   spec: PodRequestSpec
 }
 
+function softwareSessionToResourceLimitsTransformer (session: SoftwareSession): ContainerResources {
+  let memoryRequested: number
+
+  if (session.ram && session.ram.reservation) {
+    memoryRequested = session.ram.reservation
+  } else {
+    memoryRequested = POD_REQUEST_MEM
+  }
+
+  let memoryLimit: number
+
+  if (session.ram) {
+    memoryLimit = session.ram.limit
+  } else {
+    memoryLimit = POD_LIMIT_MEM
+  }
+
+  let cpuLimit: number
+
+  if (session.cpu) {
+    cpuLimit = (session.cpu.shares / 1024) * 1000
+  } else {
+    cpuLimit = POD_LIMIT_CPU
+  }
+
+  return {
+    requests: {
+      memory: `${memoryRequested}Gi`,
+      cpu: `${POD_REQUEST_CPU}m`
+    },
+    limits: {
+      memory: `${memoryLimit}Gi`,
+      cpu: `${cpuLimit}m`
+    }
+  }
+}
+
 export interface ICluster {
-  spawn (environId: string, reason: string): Promise<string>
+  spawn (session: SoftwareSession, reason: string): Promise<string>
 }
 
 export class KubernetesCluster implements ICluster {
@@ -258,7 +297,7 @@ export class KubernetesCluster implements ICluster {
   /**
    * Spawn a new pod in the cluster
    */
-  async spawn (environId: string, reason: string): Promise<string> {
+  async spawn (session: SoftwareSession, reason: string): Promise<string> {
     if (!this._pods) {
       throw new TypeError('this._pods has not been instantiated')
     }
@@ -271,12 +310,16 @@ export class KubernetesCluster implements ICluster {
       type: 'session',
       reason: reason
     }
-    // labels[pool + 'At'] = new Date().getTime().toString()
+
+    const environId = session.environment.id
+
     const container = this._containers.get(environId)
 
     if (!container) {
       throw new TypeError('Container with environment ID ' + environId + ' does not exist.')
     }
+
+    let resources = softwareSessionToResourceLimitsTransformer(session)
 
     const options: PodRequest = {
       kind: 'Pod',
@@ -298,16 +341,7 @@ export class KubernetesCluster implements ICluster {
           command: container.cmd.slice(0, 1),
           args: container.cmd.slice(1),
 
-          resources: {
-            requests: {
-              memory: POD_REQUEST_MEM,
-              cpu: POD_REQUEST_CPU
-            },
-            limits: {
-              memory: POD_LIMIT_MEM,
-              cpu: POD_LIMIT_CPU
-            }
-          },
+          resources: resources,
 
           ports: [{
             containerPort: port

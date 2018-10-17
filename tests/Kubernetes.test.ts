@@ -5,7 +5,7 @@ import { ICluster } from '../src/KubernetesCluster'
 const environment = new SoftwareEnvironment('stencila/core')
 
 class MockKubernetesCluster implements ICluster {
-  async spawn (environId: string, reason: string): Promise<string> {
+  async spawn (session: Session, reason: string): Promise<string> {
     return 'session-id'
   }
 }
