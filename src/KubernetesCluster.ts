@@ -1,6 +1,7 @@
 import { SoftwareSession } from './context'
 
 const crypto = require('crypto')
+const request = require('retry-request')
 const pino = require('pino')()
 import { config as k8sconfig, Client1_10, Api, ApiV1NamespacesNamePods } from 'kubernetes-client'
 
@@ -164,6 +165,13 @@ interface PodRequest {
   spec: PodRequestSpec
 }
 
+interface SessionProxyRequestOptions {
+  method: string
+  uri: string
+  headers: object
+  body?: any
+}
+
 function softwareSessionToResourceLimitsTransformer (session: SoftwareSession): ContainerResources {
   let memoryRequested: number
 
@@ -251,6 +259,7 @@ export class KubernetesCluster implements ICluster {
       })
 
       const pods = response.body
+      console.log(pods)
       const podItems = pods.items as Array<PodDescription>
       let sessions: Array<SessionDescription> = podItems.map(pod => KubernetesCluster._podToSession(pod))
       sessions.sort((a, b) => a.created - b.created)
@@ -400,5 +409,38 @@ export class KubernetesCluster implements ICluster {
         pod.metadata.creationTimestamp,
         pod.status.phase.toLowerCase()
     )
+  }
+
+  async resolve (sessionId: string): Promise<string> {
+    const pod = await this.get(sessionId)
+    if (pod.ip && pod.port) {
+      return `http://${pod.ip}:${pod.port}`
+    } else if (pod.status === 'Pending') {
+      throw new Error('Pod not ready yet')
+    } else {
+      throw new Error('Pod failure?')
+    }
+  }
+
+  async sessionProxy (sessionId: string, method: string, path: string, body?: Buffer): Promise<object> {
+    const podUrl = await this.resolve(sessionId)
+    const uri = podUrl + path
+    const options: SessionProxyRequestOptions = {
+      method,
+      uri,
+      headers: {
+        Accept: 'application/json'
+      }
+    }
+    if (body && body.length && (method === 'POST' || method === 'PUT')) {
+      options.body = body.toString()
+    }
+    return new Promise((resolve, reject) => {
+      request(options, { retries: 1 }, (err: Promise<any>, res: any, body: any) => {
+        console.log(body)
+        if (err) reject(err)
+        resolve(body)
+      })
+    })
   }
 }

@@ -1,5 +1,6 @@
 import { SoftwareSession } from './context'
 import { ICluster, CONTAINER_MAP } from './KubernetesCluster'
+import { SESSIONS_BASE } from './route-paths'
 
 /**
  * A compiler for JSON-LD `SoftwareSession` nodes targeting Kubernetes
@@ -49,7 +50,7 @@ export default class KubernetesCompiler {
 
     let sessionId = await this.cluster.spawn(session, 'demanded')
 
-    session.urls.push(`${baseUrl}/sessions/${sessionId}`)
+    session.urls.push(`${baseUrl}${SESSIONS_BASE}${sessionId}`)
 
     return session
   }

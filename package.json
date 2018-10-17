@@ -29,8 +29,10 @@
     "typescript": "^3.1.1"
   },
   "dependencies": {
+    "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "kubernetes-client": "^6.1.0",
-    "pino": "^5.7.0"
+    "pino": "^5.7.0",
+    "retry-request": "^4.0.0"
   }
 }
