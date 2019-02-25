@@ -1,4 +1,4 @@
-# Use Node.js 8 and cache packages
+# Use Node.js and cache packages
 language: node_js
 node_js:
   - "10"
@@ -6,11 +6,11 @@ cache:
   directories:
     - node_modules
 
-# Require docker servie for building images during tests
+# Require docker service for building images during tests
 services:
   docker
 
-# Do linting, coverage, and build docs (to upload to github pages)
+# Do linting, coverage, build Docker image, and make docs (to deploy to Github pages)
 script:
   - make lint
   - make cover
