@@ -4,5 +4,5 @@
 # See https://kubernetes.io/docs/tasks/access-application-cluster/access-cluster/#accessing-the-api-from-a-pod
 kubectl proxy --port=8000 &
 
-# Start the HostHttpServer
-npm start
+# Start the server
+node dist/server.js

@@ -3,30 +3,36 @@
   "version": "0.27.0",
   "description": "Stencila in the cloud",
   "scripts": {
-    "lint": "standard",
-    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then nodemon lib/serve.js; else node lib/serve.js; fi",
+    "lint": "tslint --project tsconfig.json --fix --format stylish ./src/**/*.ts",
+    "test": "jest",
+    "cover": "jest --collectCoverage",
+    "build": "tsc",
+    "docs": "typedoc --readme README.md --out ./docs ./src",
+    "start": "if [ \"$NODE_ENV\" = \"development\" ]; then ts-node-dev src/server.ts; else node dist/server.js; fi",
     "deps-uptodate": "ncu",
-    "deps-used": "dependency-check --entry lib/serve.js . && dependency-check --extra --no-dev --entry lib/serve.js ."
+    "deps-used": "npm run build && dependency-check --entry dist/server.js . && dependency-check --extra --no-dev --entry dist/server.js ."
   },
   "repository": "https://github.com/stencila/cloud",
   "license": "Apache-2.0",
   "devDependencies": {
-    "dependency-check": "^3.1.0",
-    "nodemon": "^1.17.5",
+    "@types/express": "^4.16.0",
+    "@types/jest": "^23.3.3",
+    "dependency-check": "^3.2.1",
+    "jest": "^23.6.0",
     "npm-check-updates": "^2.14.2",
-    "standard": "^11.0.1"
+    "standard": "^12.0.1",
+    "ts-jest": "^23.10.4",
+    "ts-node-dev": "^1.0.0-pre.30",
+    "tslint": "^5.11.0",
+    "tslint-config-standard": "^8.0.1",
+    "typedoc": "^0.12.0",
+    "typescript": "^3.1.1"
   },
   "dependencies": {
-    "cookie": "^0.3.1",
-    "dockerode": "^2.5.5",
-    "jsonwebtoken": "^8.3.0",
-    "koa": "^2.5.1",
-    "koa-router": "^7.4.0",
-    "kubernetes-client": "^5.3.0",
-    "pino": "^4.17.3",
-    "random-port": "^0.1.0",
-    "raven": "^2.6.4",
-    "raw-body": "^2.3.3",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3",
+    "kubernetes-client": "^6.1.0",
+    "pino": "^5.7.0",
     "retry-request": "^4.0.0"
   }
 }
