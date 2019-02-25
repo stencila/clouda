@@ -17,7 +17,6 @@ lint:
 	# Check code for lint code
 	npm run lint
 	npm run deps-used
-	npm run deps-uptodate
 
 test:
 	npm test

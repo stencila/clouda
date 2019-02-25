@@ -3,7 +3,12 @@ import { SoftwareSession } from './context'
 const crypto = require('crypto')
 const request = require('retry-request')
 const pino = require('pino')()
-import { config as k8sconfig, Client1_10, Api, ApiV1NamespacesNamePods } from 'kubernetes-client'
+
+import {
+  Client1_10 as KubernetesClient,
+  config as kubernetesConfig,
+  ApiV1NamespacesNamePods
+} from 'kubernetes-client'
 
 const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE || 'stencila/core'
 const DEFAULT_PORT = 2000
@@ -214,7 +219,7 @@ export interface ICluster {
 }
 
 export class KubernetesCluster implements ICluster {
-  private _k8s: Api
+  private _k8s: KubernetesClient.ApiRoot
   private _options: KubernetesClusterOptions
   private _list?: Map<string, SessionDescription>
   private _listCachedAt?: Date
@@ -224,12 +229,11 @@ export class KubernetesCluster implements ICluster {
   constructor () {
     let config
     if (process.env.NODE_ENV === 'development') {
-
-      config = k8sconfig.fromKubeconfig()
+      config = kubernetesConfig.fromKubeconfig()
     } else {
-      config = k8sconfig.getInCluster()
+      config = kubernetesConfig.getInCluster()
     }
-    this._k8s = new Client1_10({ config })
+    this._k8s = new KubernetesClient({ config })
 
     this._options = {
       listRefresh: 10000 // milliseconds
@@ -242,7 +246,6 @@ export class KubernetesCluster implements ICluster {
     if (this._pods) {
       return
     }
-    await this._k8s.loadSpec()
     this._pods = this._k8s.api.v1.namespaces('default').pods
   }
 
