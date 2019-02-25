@@ -35,25 +35,8 @@ Task                       | `npm`                                | `make`      
 ---------------------------|--------------------------------------|-----------------|
 Install dependencies       | `npm install`                        | `make setup`
 Check for lint             | `npm run lint`                       | `make lint`
-Run during development     | `NODE_ENV='development' npm start`   | `make run`
-Run in production mode     | `npm start`                          | `make run-prod`
-Run in a Docker container  |                                      | `make run-docker`
-Run on a Minikube cluster  |                                      | `make run-minikube`
-
-
-## Run locally
-
-Run the `Host` locally in development mode,
-
-```bash
-NODE_ENV='development' npm start # or, make run
-```
-
-or in production mode,
-
-```bash
-npm start # or, make run-prod
-```
+Run with Minikube          | `NODE_ENV='development' npm start`   | `make run-with-minikube`
+Run inside Minikube        |                                      | `make run-inside-minikube`
 
 ### Run with Minikube
 
@@ -63,26 +46,26 @@ Install [`minikube`](https://kubernetes.io/docs/tasks/tools/install-minikube/) a
 
 ```bash
 minikube start
+make run-with-minikube
 ```
+
+The server will be available on http://localhost:2000 but will create new pods on Minikube. e.g. Create a new session using [HTTPie](https://httpie.org/)
 
 ```bash
-env CLUSTER='k8s' NODE_ENV='development' npm start
+http PUT :2000/execute environment:='{"id":"alpine"}'
 ```
 
-### Run inside Docker
-
-You can also run the `Host` within a Docker container
-
-```bash
-make run-docker
-```
+Use `minikube dashboard` or `kubectl get pods` to confirm that the session pods are getting created.
 
 ## Run inside Minikube
+
+You can run the server inside Minikube and create new session pods there too. 
 
 Deploy `stencila/cloud` to the Minikube cluster,
 
 ```bash
-make run-minikube
+minikube start
+make run-inside-minikube
 ```
 
 Check the `Deployment` is ready (the dashboard can be useful for this too: `minikube dashboard`),
@@ -110,10 +93,4 @@ If you're developing the Docker images in the [`stencila/images`](http://github.
 
 ```bash
 eval $(minikube docker-env)
-```
-
-[HTTPie](https://httpie.org/) is a useful alternative to Curl for testing the server at the command line because it allows storing session tokens e.g.
-
-```bash
-http --session=/tmp/session.json :2000/login?ticket=platypus
 ```

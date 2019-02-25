@@ -1,8 +1,4 @@
 # An example Minikube deployment
-# 
-# Note that this includes components such as `docker-container`
-# and `registry-container` that can be used for building custom
-# images but which are currently not used.
 
 # Deployment of the stencila/cloud image
 
@@ -32,31 +28,8 @@ spec:
               value: 'platypus'
             - name: JWT_SECRET
               value: 'in production this should actually be a secret'
-            - name: DOCKER_HOST
-              value: tcp://127.0.0.1:2375
-            - name: DOCKER_REGISTRY
-              value: localhost:5000
           ports:
             - containerPort: 2000
-
-        # Use Docker-in-Docker (dind) to build Docker images
-        # An alternative is to use the Docker daemeon that is actually present on
-        # the node. But doing so has security implications. This isn't perfec
-        # but it seems to be better.
-        # See the discussion at https://github.com/kubernetes/kubernetes/issues/1806
-        - name: docker-container
-          image: docker:dind
-          securityContext:
-            privileged: true
-          ports:
-            - containerPort: 2375
-
-        # Use a Docker Registry in the same pod because otherwise we need
-        # to configure TLS 
-        - name: registry-container
-          image: registry:2
-          ports:
-            - containerPort: 5000
 
 ---
 
@@ -74,45 +47,6 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 2000
-
-
----
-
-# Expose the docker-container to be able 
-# to do a `docker build ...` inside of it from 
-# outside of the cluster (see README)
-
-kind: Service
-apiVersion: v1
-metadata:
-  name: stencila-cloud-docker
-spec:
-  type: NodePort
-  selector:
-    app: stencila-cloud-app
-  ports:
-    - protocol: TCP
-      port: 2375
-      targetPort: 2375
-
----
-
-# Expose the docker-container to allow kubectl to pull
-# images built within this cluster. Need to run:
-#   kubectl port-forward $(kubectl get pods -n | grep stencila-cloud-registry | awk '{print $1;}') 5000:5000
-
-kind: Service
-apiVersion: v1
-metadata:
-  name: stencila-cloud-registry
-spec:
-  type: NodePort
-  selector:
-    app: stencila-cloud-app
-  ports:
-    - protocol: TCP
-      port: 5000
-      targetPort: 5000
 
 ---
 

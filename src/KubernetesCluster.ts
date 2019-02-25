@@ -230,9 +230,14 @@ export class KubernetesCluster implements ICluster {
     let config
     if (process.env.NODE_ENV === 'development') {
       config = kubernetesConfig.fromKubeconfig()
+      if (!(config.url.startsWith('https://10.') || config.url.startsWith('https://192.168.'))) {
+        throw new Error('It looks like you are trying to connect to a remote Kubernetes clustr while in development. Maybe you forgot to `minuke start`?')
+      }
     } else {
       config = kubernetesConfig.getInCluster()
     }
+    pino.info({subject: 'config', url: config.url})
+
     this._k8s = new KubernetesClient({ config })
 
     this._options = {
