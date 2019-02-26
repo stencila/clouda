@@ -51,6 +51,7 @@ export default class KubernetesCompiler {
     let sessionId = await this.cluster.spawn(session, 'demanded')
 
     session.urls.push(`${baseUrl}${SESSIONS_BASE}${sessionId}`)
+    session.executionId = sessionId
 
     return session
   }

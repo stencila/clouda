@@ -188,7 +188,7 @@ function softwareSessionToResourceLimitsTransformer (session: SoftwareSession): 
 
   let memoryLimit: number
 
-  if (session.ram) {
+  if (session.ram && session.ram.limit) {
     memoryLimit = session.ram.limit
   } else {
     memoryLimit = POD_LIMIT_MEM
@@ -196,7 +196,7 @@ function softwareSessionToResourceLimitsTransformer (session: SoftwareSession): 
 
   let cpuLimit: number
 
-  if (session.cpu) {
+  if (session.cpu && session.cpu.shares) {
     cpuLimit = (session.cpu.shares / 1024) * 1000
   } else {
     cpuLimit = POD_LIMIT_CPU
@@ -230,13 +230,13 @@ export class KubernetesCluster implements ICluster {
     let config
     if (process.env.NODE_ENV === 'development') {
       config = kubernetesConfig.fromKubeconfig()
-      if (!(config.url.startsWith('https://10.') || config.url.startsWith('https://192.168.'))) {
-        throw new Error('It looks like you are trying to connect to a remote Kubernetes clustr while in development. Maybe you forgot to `minuke start`?')
+      if (!(config.url.startsWith('https://10.') || config.url.startsWith('https://192.168.') || config.url.startsWith('https://172.'))) {
+        throw new Error('It looks like you are trying to connect to a remote Kubernetes cluster while in development. Maybe you forgot to `minikube start`?')
       }
     } else {
       config = kubernetesConfig.getInCluster()
     }
-    pino.info({subject: 'config', url: config.url})
+    pino.info({ subject: 'config', url: config.url })
 
     this._k8s = new KubernetesClient({ config })
 
@@ -267,7 +267,6 @@ export class KubernetesCluster implements ICluster {
       })
 
       const pods = response.body
-      console.log(pods)
       const podItems = pods.items as Array<PodDescription>
       let sessions: Array<SessionDescription> = podItems.map(pod => KubernetesCluster._podToSession(pod))
       sessions.sort((a, b) => a.created - b.created)

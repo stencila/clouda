@@ -42,6 +42,7 @@ export class SoftwareSession {
   public ram?: MemoryAllocation
   public cpu?: CpuAllocation
   public network?: NetworkTransferAllocation
+  public executionId?: String
 
   constructor (public readonly environment: SoftwareEnvironment, public urls: Array<URL> = []) {
   }
