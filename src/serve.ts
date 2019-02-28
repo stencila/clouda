@@ -12,8 +12,6 @@ const compiler = new KubernetesCompiler(cluster)
 
 const app = express()
 
-app.use(json())
-
 if (process.env.SENTRY_DSN) {
   const Sentry = require('@sentry/node')
   Sentry.init({
@@ -21,7 +19,8 @@ if (process.env.SENTRY_DSN) {
   })
 }
 
-let sessionProxy = httpProxy.createProxyServer()
+// Handle session proxying before any body parsing, JWT handling etc
+const sessionProxy = httpProxy.createProxyServer()
 app.all(`${SESSIONS_BASE}(:sessionId)/*`, async (req, res) => {
   const podUrl = await cluster.resolve(req.params.sessionId)
   req.url = req.url.replace(`${SESSIONS_BASE}${req.params.sessionId}/`,'/')
@@ -73,6 +72,8 @@ function run (method: string) {
     }
   }
 }
+
+app.use(json())
 app.put('/compile', run('compile'))
 app.put('/execute', run('execute'))
 
