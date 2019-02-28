@@ -1,1 +1,1 @@
-export const SESSIONS_BASE = '/sessions!/'
+export const SESSIONS_BASE = '/sessions/'
