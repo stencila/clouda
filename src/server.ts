@@ -1,11 +1,11 @@
+import bodyParser from 'body-parser'
 import express from 'express'
+import jwt from 'express-jwt'
+
 import router from './router'
-import bodyParser = require('body-parser')
 import { SESSIONS_BASE } from './route-paths'
 
 const app = express()
-const jwt = require('express-jwt')
-const JWT_ENABLED = process.env.NODE_ENV !== 'development'
 
 if (process.env.SENTRY_DSN) {
   const Sentry = require('@sentry/node')
@@ -14,10 +14,7 @@ if (process.env.SENTRY_DSN) {
   })
 }
 
-/**
- * Secret for JSON web tokens.
- */
-if (JWT_ENABLED) {
+if (process.env.NODE_ENV !== 'development') {
   const JWT_SECRET = process.env.JWT_SECRET
   if (!JWT_SECRET) {
     throw Error('JWT_SECRET must be set')
