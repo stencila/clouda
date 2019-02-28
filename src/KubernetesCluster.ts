@@ -1,7 +1,6 @@
 import { SoftwareSession } from './context'
 
 const crypto = require('crypto')
-const request = require('retry-request')
 const pino = require('pino')()
 
 import {
@@ -218,7 +217,7 @@ export interface ICluster {
   spawn (session: SoftwareSession, reason: string): Promise<string>
 }
 
-export class KubernetesCluster implements ICluster {
+export default class KubernetesCluster implements ICluster {
   private _k8s: KubernetesClient.ApiRoot
   private _options: KubernetesClusterOptions
   private _list?: Map<string, SessionDescription>
@@ -427,27 +426,5 @@ export class KubernetesCluster implements ICluster {
     } else {
       throw new Error('Pod failure?')
     }
-  }
-
-  async sessionProxy (sessionId: string, method: string, path: string, body?: Buffer): Promise<object> {
-    const podUrl = await this.resolve(sessionId)
-    const uri = podUrl + path
-    const options: SessionProxyRequestOptions = {
-      method,
-      uri,
-      headers: {
-        Accept: 'application/json'
-      }
-    }
-    if (body && body.length && (method === 'POST' || method === 'PUT')) {
-      options.body = body.toString()
-    }
-    return new Promise((resolve, reject) => {
-      request(options, { retries: 1 }, (err: Promise<any>, res: any, body: any) => {
-        console.log(body)
-        if (err) reject(err)
-        resolve(body)
-      })
-    })
   }
 }

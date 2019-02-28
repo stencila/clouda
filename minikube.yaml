@@ -14,8 +14,6 @@ spec:
         app: stencila-cloud-app
     spec:
       containers:
-
-        # Stencila Cloud server
         - name: server-container
           image: stencila/cloud
           # Use  `IfNotPresent` so that Kubernetes does not pull each time and
@@ -24,10 +22,8 @@ spec:
           env:
             - name: REDEPLOY_DATETIME
               value: REDEPLOY_DATETIME_
-            - name: TICKET
-              value: 'platypus'
-            - name: JWT_SECRET
-              value: 'in production this should actually be a secret'
+            - name: JWT_DISABLE
+              value: 'true'
           ports:
             - containerPort: 2000
 

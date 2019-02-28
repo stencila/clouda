@@ -38,7 +38,7 @@ run-with-minikube:
 
 run-inside-minikube:
 	# Build the stencila/cloud image within Minikube
-	eval $$(minikube docker-env) && docker build . --tag stencila/cloud
+	eval $$(minikube docker-env) && make build
 	# Force a redeploy of container(s) by changing REDEPLOY_DATETIME_ env var
 	sed "s!REDEPLOY_DATETIME_.*!REDEPLOY_DATETIME_$$(date +%Y-%m-%dT%H:%M:%S%z)!g" minikube.yaml | kubectl apply -f -
 
