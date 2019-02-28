@@ -5,8 +5,7 @@ const pino = require('pino')()
 
 import {
   Client1_10 as KubernetesClient,
-  config as kubernetesConfig,
-  ApiV1NamespacesNamePods
+  config as kubernetesConfig
 } from 'kubernetes-client'
 
 const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE || 'stencila/core'
@@ -219,10 +218,12 @@ export interface ICluster {
 
 export default class KubernetesCluster implements ICluster {
   private _k8s: KubernetesClient.ApiRoot
+  private _pods: KubernetesClient.ApiV1NamespacesNamePods
+
   private _options: KubernetesClusterOptions
+
   private _list?: Map<string, SessionDescription>
   private _listCachedAt?: Date
-  private _pods?: ApiV1NamespacesNamePods
   private readonly _containers: Map<string, ContainerDescription>
 
   constructor () {
@@ -238,6 +239,7 @@ export default class KubernetesCluster implements ICluster {
     pino.info({ subject: 'config', url: config.url })
 
     this._k8s = new KubernetesClient({ config })
+    this._pods = this._k8s.api.v1.namespaces('default').pods
 
     this._options = {
       listRefresh: 10000 // milliseconds
@@ -246,19 +248,8 @@ export default class KubernetesCluster implements ICluster {
     this._containers = CONTAINER_MAP
   }
 
-  async init () {
-    if (this._pods) {
-      return
-    }
-    this._pods = this._k8s.api.v1.namespaces('default').pods
-  }
-
   async list (): Promise<Map<string, SessionDescription>> {
     if (!this._listCachedAt || (new Date().getTime() - this._listCachedAt.getTime()) > this._options.listRefresh) {
-      if (!this._pods) {
-        throw new TypeError('this._pods has not been instantiated.')
-      }
-
       const response = await this._pods.get({
         qs: {
           labelSelector: 'type=session'
@@ -299,10 +290,6 @@ export default class KubernetesCluster implements ICluster {
       // @ts-ignore Typescript does not understand that the .has() check means undefined is not returned
       return sessions.get(sessionId)
     } else {
-      if (!this._pods) {
-        throw new TypeError('this._pods has not been instantiated')
-      }
-
       const requested = await this._pods(sessionId).get()
       const pod = requested.body
       return KubernetesCluster._podToSession(pod)
@@ -313,10 +300,6 @@ export default class KubernetesCluster implements ICluster {
    * Spawn a new pod in the cluster
    */
   async spawn (session: SoftwareSession, reason: string): Promise<string> {
-    if (!this._pods) {
-      throw new TypeError('this._pods has not been instantiated')
-    }
-
     const time = new Date().toISOString().replace(/[-T:.Z]/g, '')
     const rand = crypto.randomBytes(16).toString('hex')
     const name = `session-${time}-${rand}`
