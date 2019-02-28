@@ -87,7 +87,6 @@ export const CONTAINER_MAP = new Map(DEFAULT_CONTAINERS.map(
 
 interface PodLabels {
   type: string
-  reason: string
 }
 
 interface PodRequestMetadata {
@@ -212,11 +211,7 @@ function softwareSessionToResourceLimitsTransformer (session: SoftwareSession): 
   }
 }
 
-export interface ICluster {
-  spawn (session: SoftwareSession, reason: string): Promise<string>
-}
-
-export default class KubernetesCluster implements ICluster {
+export default class KubernetesCluster {
   private _k8s: KubernetesClient.ApiRoot
   private _pods: KubernetesClient.ApiV1NamespacesNamePods
 
@@ -297,22 +292,16 @@ export default class KubernetesCluster implements ICluster {
   }
 
   /**
-   * Spawn a new pod in the cluster
+   * Start a new session
    */
-  async spawn (session: SoftwareSession, reason: string): Promise<string> {
+  async start (session: SoftwareSession): Promise<string> {
     const time = new Date().toISOString().replace(/[-T:.Z]/g, '')
     const rand = crypto.randomBytes(16).toString('hex')
-    const name = `session-${time}-${rand}`
+    const podName = `session-${time}-${rand}`
     const port = DEFAULT_PORT
-    const labels: PodLabels = {
-      type: 'session',
-      reason: reason
-    }
 
     const environId = session.environment.id
-
     const container = this._containers.get(environId)
-
     if (!container) {
       throw new TypeError('Container with environment ID ' + environId + ' does not exist.')
     }
@@ -323,9 +312,11 @@ export default class KubernetesCluster implements ICluster {
       kind: 'Pod',
       apiVersion: 'v1',
       metadata: {
-        name: name,
+        name: podName,
         type: 'stencila-cloud-pod',
-        labels: labels
+        labels: {
+          type: 'session'
+        }
       },
       spec: {
         containers: [{
@@ -376,11 +367,22 @@ export default class KubernetesCluster implements ICluster {
       }
     }
 
-    const response = await this._pods.post({ body: options })
-    const pod = response.body
-    pino.info({ subject: 'created', pod: pod.metadata.name, port: port })
+    // Create the pod
+    await this._pods.post({ body: options })
+    pino.info({ subject: 'created', pod: podName, port: port })
 
-    return pod.metadata.name
+    // Wait for pod to be ready
+    let attempt = 0
+    while (attempt < 100) {
+      const response = await this._pods(podName).get()
+      const pod = response.body
+      if (pod.status.phase === 'Running') break
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      attempt += 1
+    }
+    pino.info({ subject: 'started', pod: podName, port: port })
+
+    return podName
   }
 
   /**

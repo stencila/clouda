@@ -1,12 +1,12 @@
 import { SoftwareSession } from './context'
-import { ICluster, CONTAINER_MAP } from './KubernetesCluster'
+import KubernetesCluster, { CONTAINER_MAP } from './KubernetesCluster'
 import { SESSIONS_BASE } from './route-paths'
 
 /**
  * A compiler for JSON-LD `SoftwareSession` nodes targeting Kubernetes
  */
 export default class KubernetesCompiler {
-  constructor (private cluster: ICluster) {
+  constructor (private cluster: KubernetesCluster) {
   }
 
   /**
@@ -48,7 +48,7 @@ export default class KubernetesCompiler {
   async execute (session: SoftwareSession, baseUrl: string): Promise<SoftwareSession> {
     session = await this.compile(session)
 
-    let sessionId = await this.cluster.spawn(session, 'demanded')
+    let sessionId = await this.cluster.start(session)
 
     session.urls.push(`${baseUrl}${SESSIONS_BASE}${sessionId}`)
     session.executionId = sessionId
