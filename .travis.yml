@@ -13,7 +13,8 @@ services:
 # Do linting, coverage, build Docker image, and make docs (to deploy to Github pages)
 script:
   - make lint
-  - make cover
+  # Temporarily disable pending Minikube integration here
+  # - make cover
   - make build
   - make docs
 

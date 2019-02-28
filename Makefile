@@ -19,7 +19,7 @@ lint:
 	npm run deps-used
 
 test:
-	npm test
+	NODE_ENV='development' npm test
 
 cover:
 	npm run cover

@@ -1,16 +1,9 @@
 import { default as Compiler } from '../src/KubernetesCompiler'
 import { SoftwareEnvironment, SoftwareSession as Session } from '../src/context'
-import { ICluster } from '../src/KubernetesCluster'
+import KubernetesCluster from '../src/KubernetesCluster'
 
 const environment = new SoftwareEnvironment('stencila/core')
-
-class MockKubernetesCluster implements ICluster {
-  async spawn (session: Session, reason: string): Promise<string> {
-    return 'session-id'
-  }
-}
-
-const cluster = new MockKubernetesCluster()
+const cluster = new KubernetesCluster()
 
 test('compile', async () => {
   const compiler = new Compiler(cluster)
