@@ -116,8 +116,10 @@ interface ContainerDefinition {
   env: Array<NameValuePair>
   command: Array<string>
   args: Array<string>
+  cwd: string,
   resources: ContainerResources
   ports: Array<ContainerPortDefinition>
+  volumeMounts?: Array<any>
 }
 
 interface PodSecurityContext {
@@ -154,6 +156,7 @@ interface PodAffinityWrapper {
 
 interface PodRequestSpec {
   containers: Array<ContainerDefinition>
+  volumes?: Array<any>
   restartPolicy: string
   securityContext: PodSecurityContext
   automountServiceAccountToken: boolean
@@ -165,13 +168,6 @@ interface PodRequest {
   apiVersion: string
   metadata: PodRequestMetadata
   spec: PodRequestSpec
-}
-
-interface SessionProxyRequestOptions {
-  method: string
-  uri: string
-  headers: object
-  body?: any
 }
 
 function softwareSessionToResourceLimitsTransformer (session: SoftwareSession): ContainerResources {
@@ -308,6 +304,17 @@ export default class KubernetesCluster {
 
     let resources = softwareSessionToResourceLimitsTransformer(session)
 
+    let volumeMounts: any[] = []
+    if (session.mounts) {
+      for (let mount of session.mounts) {
+        volumeMounts.push({
+          mountPath: mount.destination,
+          subPath: mount.source,
+          name: 'storage'
+        })
+      }
+    }
+
     const options: PodRequest = {
       kind: 'Pod',
       apiVersion: 'v1',
@@ -329,13 +336,22 @@ export default class KubernetesCluster {
 
           command: container.cmd.slice(0, 1),
           args: container.cmd.slice(1),
+          cwd: '/work',
 
           resources: resources,
 
           ports: [{
             containerPort: port
           }]
+
+          // volumeMounts
         }],
+        /*volumes: [{
+          name: 'storage',
+          persistentVolumeClaim: {
+            claimName: 'storage'
+          }
+        }],*/
         restartPolicy: 'Never',
         securityContext: {
           runAsUser: 1000
@@ -383,6 +399,10 @@ export default class KubernetesCluster {
     pino.info({ subject: 'started', pod: podName, port: port })
 
     return podName
+  }
+
+  async status (sessionId: string) {
+    return this.get(sessionId)
   }
 
   /**
