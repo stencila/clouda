@@ -18,6 +18,7 @@
     "@types/express-jwt": "0.0.41",
     "@types/http-proxy": "^1.16.2",
     "@types/jest": "^24.0.6",
+    "@types/pino": "^5.8.5",
     "dependency-check": "^3.3.0",
     "jest": "^24.1.0",
     "standard": "^12.0.1",
