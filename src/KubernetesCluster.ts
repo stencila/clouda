@@ -402,7 +402,17 @@ export default class KubernetesCluster {
   }
 
   async status (sessionId: string) {
-    return this.get(sessionId)
+    try {
+      return await this.get(sessionId)
+    } catch (error) {
+      // If we are unable to get the session, then assume it
+      // succeeded and has been removed
+      pino.info({ subject: 'not-found', pod: sessionId })
+      return {
+        id: sessionId,
+        status: 'succeeded'
+      }
+    }
   }
 
   /**
