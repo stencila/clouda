@@ -24,6 +24,8 @@ const POD_LIMIT_MEM = parseFloat(process.env.POD_LIMIT_MEM || '') || 1.2 // conv
 // See https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#inter-pod-affinity-and-anti-affinity-beta-feature
 const SESSION_AFFINITY = parseInt(process.env.SESSION_AFFINITY || '0', 10) || 0
 
+const STORAGE_PVC = process.env.STORAGE_PVC
+
 class KubernetesClusterOptions {
   public listRefresh: number
 
@@ -315,6 +317,17 @@ export default class KubernetesCluster {
       }
     }
 
+    let storageVolume: {[key: string]: any} = {
+      name: 'storage-volume'
+    }
+    if (STORAGE_PVC) {
+      storageVolume.persistentVolumeClaim = {
+        claimName: 'storage-pvc'
+      }
+    } else {
+      storageVolume.emptyDir = {}
+    }
+
     const options: PodRequest = {
       kind: 'Pod',
       apiVersion: 'v1',
@@ -346,12 +359,9 @@ export default class KubernetesCluster {
 
           volumeMounts
         }],
-        volumes: [{
-          name: 'storage-volume',
-          persistentVolumeClaim: {
-            claimName: 'storage-pvc'
-          }
-        }],
+        volumes: [
+          storageVolume
+        ],
         restartPolicy: 'Never',
         securityContext: {
           runAsUser: 1000

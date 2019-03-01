@@ -24,6 +24,8 @@ spec:
               value: REDEPLOY_DATETIME_
             - name: JWT_DISABLE
               value: 'true'
+            - name: STORAGE_PVC
+              value: storage-pvc
           ports:
             - containerPort: 2000
 
