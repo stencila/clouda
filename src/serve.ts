@@ -7,6 +7,10 @@ import KubernetesCompiler from './KubernetesCompiler'
 import KubernetesCluster from './KubernetesCluster'
 import { SESSIONS_BASE } from './route-paths'
 
+import pino from 'pino'
+
+const logger = pino()
+
 const cluster = new KubernetesCluster()
 const compiler = new KubernetesCompiler(cluster)
 
@@ -23,7 +27,7 @@ if (process.env.SENTRY_DSN) {
 const sessionProxy = httpProxy.createProxyServer()
 app.all(`${SESSIONS_BASE}(:sessionId)/*`, async (req, res) => {
   const podUrl = await cluster.resolve(req.params.sessionId)
-  req.url = req.url.replace(`${SESSIONS_BASE}${req.params.sessionId}/`,'/')
+  req.url = req.url.replace(`${SESSIONS_BASE}${req.params.sessionId}/`, '/')
   sessionProxy.web(req, res, { target: podUrl })
 })
 
@@ -79,10 +83,11 @@ app.put('/execute', run('execute'))
 app.put('/status', async (req: Request, res: Response) => {
   try {
     res.status(200).json(
-      await cluster.status(req.body.id)
+        await cluster.status(req.body.id)
     )
   } catch (error) {
     res.status(500).send(error.stack)
+    logger.error({ msg: error.message, stack: error.stack })
   }
 })
 
