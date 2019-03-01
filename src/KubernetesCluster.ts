@@ -322,7 +322,7 @@ export default class KubernetesCluster {
     }
     if (STORAGE_PVC) {
       storageVolume.persistentVolumeClaim = {
-        claimName: 'storage-pvc'
+        claimName: STORAGE_PVC
       }
     } else {
       storageVolume.emptyDir = {}
