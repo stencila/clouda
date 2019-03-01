@@ -1,13 +1,12 @@
 import express, { Request, Response, json } from 'express'
 import expressJwt from 'express-jwt'
 import httpProxy from 'http-proxy'
+import pino from 'pino'
 import url from 'url'
 
 import KubernetesCompiler from './KubernetesCompiler'
 import KubernetesCluster from './KubernetesCluster'
 import { SESSIONS_BASE } from './route-paths'
-
-import pino from 'pino'
 
 const logger = pino()
 
@@ -71,6 +70,7 @@ function run (method: string) {
       }
     } catch (error) {
       res.status(500).send(error.stack)
+      logger.error({ msg: error.message, stack: error.stack })
     }
   }
 }
@@ -83,7 +83,7 @@ app.put('/execute', run('execute'))
 app.put('/status', async (req: Request, res: Response) => {
   try {
     res.status(200).json(
-        await cluster.status(req.body.id)
+      await cluster.status(req.body.id)
     )
   } catch (error) {
     res.status(500).send(error.stack)
