@@ -116,7 +116,7 @@ interface ContainerDefinition {
   env: Array<NameValuePair>
   command: Array<string>
   args: Array<string>
-  cwd: string,
+  workingDir: string,
   resources: ContainerResources
   ports: Array<ContainerPortDefinition>
   volumeMounts?: Array<any>
@@ -308,9 +308,9 @@ export default class KubernetesCluster {
     if (session.mounts) {
       for (let mount of session.mounts) {
         volumeMounts.push({
+          name: 'storage-volume',
           mountPath: mount.destination,
-          subPath: mount.source,
-          name: 'storage'
+          subPath: mount.source
         })
       }
     }
@@ -336,22 +336,22 @@ export default class KubernetesCluster {
 
           command: container.cmd.slice(0, 1),
           args: container.cmd.slice(1),
-          cwd: '/work',
+          workingDir: '/work',
 
           resources: resources,
 
           ports: [{
             containerPort: port
-          }]
+          }],
 
-          // volumeMounts
+          volumeMounts
         }],
-        /*volumes: [{
-          name: 'storage',
+        volumes: [{
+          name: 'storage-volume',
           persistentVolumeClaim: {
-            claimName: 'storage'
+            claimName: 'storage-pvc'
           }
-        }],*/
+        }],
         restartPolicy: 'Never',
         securityContext: {
           runAsUser: 1000
@@ -389,7 +389,7 @@ export default class KubernetesCluster {
 
     // Wait for pod to be ready
     let attempt = 0
-    while (attempt < 100) {
+    while (attempt < 60 * 5) {
       const response = await this._pods(podName).get()
       const pod = response.body
       if (pod.status.phase === 'Running') break

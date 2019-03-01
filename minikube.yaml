@@ -29,6 +29,36 @@ spec:
 
 ---
 
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: storage-pv
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  # Minikube will persist files stored under /data so we use that to simulate
+  # a persistent disk in production
+  # See https://github.com/kubernetes/minikube/blob/master/docs/persistent_volumes.md
+  hostPath:
+    path: /data/storage
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: storage-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
 # Expose the server-container for testing
 
 kind: Service
