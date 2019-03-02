@@ -8,7 +8,7 @@ import {
   config as kubernetesConfig
 } from 'kubernetes-client'
 
-const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE || 'stencila/core'
+const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE  || 'stencila/core'
 const DEFAULT_PORT = 2000
 const POD_REQUEST_CPU = parseFloat(process.env.POD_REQUEST_MEM || '') || 50 // As well as limiting pods on the node this is also passed
 // to docker's --cpu-shares controlling the relative weighting of containers (since we are setting it to the same value
@@ -68,18 +68,23 @@ enum ImagePullPolicy {
 }
 
 class ContainerDescription {
-  constructor (public image: string, public cmd: Array<string>, public vars: Array<NameValuePair> = [], public imagePullPolicy?: ImagePullPolicy) {
-  }
+  constructor (
+    public image: string,
+    public imageTagged: string,
+    public cmd: Array<string>,
+    public vars: Array<NameValuePair> = [],
+    public imagePullPolicy?: ImagePullPolicy
+  ) {}
 }
 
 const DEFAULT_CONTAINERS = [
-  new ContainerDescription(STENCILA_CORE_IMAGE, ['stencila-cmd'], [
+  new ContainerDescription('stencila/core', STENCILA_CORE_IMAGE, ['stencila-cmd'], [
     { name: 'STENCILA_AUTH', value: 'false' }
   ], ImagePullPolicy.IfNotPresent),
-  new ContainerDescription('stencila/base-node', ['stencila-cmd'], [
+  new ContainerDescription('stencila/base-node', 'stencila/base-node', ['stencila-cmd'], [
     { name: 'STENCILA_AUTH', value: 'false' }
   ], ImagePullPolicy.Always),
-  new ContainerDescription('alpine', ['sleep', '90'])
+  new ContainerDescription('alpine', 'alpine', ['sleep', '90'])
 ]
 
 export const CONTAINER_MAP = new Map(DEFAULT_CONTAINERS.map(
@@ -342,7 +347,7 @@ export default class KubernetesCluster {
         containers: [{
           name: 'stencila-host-container',
 
-          image: container.image,
+          image: container.imageTagged,
           imagePullPolicy: ImagePullPolicy[container.imagePullPolicy || ImagePullPolicy.IfNotPresent],
 
           env: container.vars,
