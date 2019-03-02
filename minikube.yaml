@@ -22,6 +22,8 @@ spec:
           env:
             - name: REDEPLOY_DATETIME
               value: REDEPLOY_DATETIME_
+            - name: STENCILA_CORE_IMAGE
+              value: stencila/core@sha256:1b1ddf26b8818d5fdee8f24eed2c074a6572dd8958fdc55f234416e7344ec7ea
             - name: JWT_DISABLE
               value: 'true'
             - name: STORAGE_PVC

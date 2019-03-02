@@ -71,16 +71,16 @@ class ContainerDescription {
   constructor (
     public image: string,
     public imageTagged: string,
-    public cmd: Array<string>,
+    public cmd: Array<string> = [],
     public vars: Array<NameValuePair> = [],
     public imagePullPolicy?: ImagePullPolicy
   ) {}
 }
 
 const DEFAULT_CONTAINERS = [
-  new ContainerDescription('stencila/core', STENCILA_CORE_IMAGE, ['stencila-cmd'], [
-    { name: 'STENCILA_AUTH', value: 'false' }
-  ], ImagePullPolicy.IfNotPresent),
+  new ContainerDescription('stencila/core', STENCILA_CORE_IMAGE,
+    ['node', '-e', "require('stencila-node').run({address: '0.0.0.0', port: 2000, timeout: 3600})"],
+    [], ImagePullPolicy.IfNotPresent),
   new ContainerDescription('stencila/base-node', 'stencila/base-node', ['stencila-cmd'], [
     { name: 'STENCILA_AUTH', value: 'false' }
   ], ImagePullPolicy.Always),
@@ -122,7 +122,6 @@ interface ContainerDefinition {
   imagePullPolicy: string
   env: Array<NameValuePair>
   command: Array<string>
-  args: Array<string>
   workingDir: string,
   resources: ContainerResources
   ports: Array<ContainerPortDefinition>
@@ -352,8 +351,7 @@ export default class KubernetesCluster {
 
           env: container.vars,
 
-          command: container.cmd.slice(0, 1),
-          args: container.cmd.slice(1),
+          command: container.cmd,
           workingDir: '/work',
 
           resources: resources,
