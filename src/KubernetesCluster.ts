@@ -367,7 +367,7 @@ export default class KubernetesCluster {
         ],
         restartPolicy: 'Never',
         securityContext: {
-          runAsUser: 1000
+          runAsUser: 1001
         },
         // Do NOT mount any K8s service account tokens into the pod so
         // that session containers can not access the K8s API
