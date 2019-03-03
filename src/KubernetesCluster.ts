@@ -10,7 +10,7 @@ import {
 
 const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE  || 'stencila/core'
 const DEFAULT_PORT = 2000
-const POD_REQUEST_CPU = parseFloat(process.env.POD_REQUEST_MEM || '') || 50 // As well as limiting pods on the node this is also passed
+const POD_REQUEST_CPU = parseFloat(process.env.POD_REQUEST_CPU || '') || 50 // As well as limiting pods on the node this is also passed
 // to docker's --cpu-shares controlling the relative weighting of containers (since we are setting it to the same value
 // for all containers this probably does nothing).
 const POD_REQUEST_MEM = parseFloat(process.env.POD_REQUEST_MEM || '') || (50 / 1024) // Just used to limit pods on the node.
