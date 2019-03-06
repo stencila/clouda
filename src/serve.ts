@@ -60,7 +60,7 @@ function run (method: string) {
           host: req.get('host'),
           pathname: ''
         })
-        node = await compiler.execute(req.body, baseUrl)
+        node = await compiler.execute(req.body, baseUrl, req.query.waitForStart !== 'false')
       } else {
         // @ts-ignore
         node = await compiler[method](req.body)

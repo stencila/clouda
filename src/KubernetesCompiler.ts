@@ -45,10 +45,10 @@ export default class KubernetesCompiler {
    * @param session  The JSON-LD session to be compiled
    * @param baseUrl  The base URL for the request invoking this method
    */
-  async execute (session: SoftwareSession, baseUrl: string): Promise<SoftwareSession> {
+  async execute (session: SoftwareSession, baseUrl: string, waitForStart: boolean = true): Promise<SoftwareSession> {
     session = await this.compile(session)
 
-    let sessionId = await this.cluster.start(session)
+    let sessionId = await this.cluster.start(session, waitForStart)
 
     session.urls.push(`${baseUrl}${SESSIONS_BASE}${sessionId}`)
     session.executionId = sessionId

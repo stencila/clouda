@@ -8,7 +8,7 @@ import {
   config as kubernetesConfig
 } from 'kubernetes-client'
 
-const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE  || 'stencila/core'
+const STENCILA_CORE_IMAGE = process.env.STENCILA_CORE_IMAGE || 'stencila/core'
 const DEFAULT_PORT = 2000
 const POD_REQUEST_CPU = parseFloat(process.env.POD_REQUEST_CPU || '') || 50 // As well as limiting pods on the node this is also passed
 // to docker's --cpu-shares controlling the relative weighting of containers (since we are setting it to the same value
@@ -69,18 +69,19 @@ enum ImagePullPolicy {
 
 class ContainerDescription {
   constructor (
-    public image: string,
-    public imageTagged: string,
-    public cmd: Array<string> = [],
-    public vars: Array<NameValuePair> = [],
-    public imagePullPolicy?: ImagePullPolicy
-  ) {}
+      public image: string,
+      public imageTagged: string,
+      public cmd: Array<string> = [],
+      public vars: Array<NameValuePair> = [],
+      public imagePullPolicy?: ImagePullPolicy
+  ) {
+  }
 }
 
 const DEFAULT_CONTAINERS = [
   new ContainerDescription('stencila/core', STENCILA_CORE_IMAGE,
-    ['node', '-e', "require('stencila-node').run({address: '0.0.0.0', port: 2000, timeout: 3600})"],
-    [], ImagePullPolicy.IfNotPresent),
+      ['node', '-e', 'require(\'stencila-node\').run({address: \'0.0.0.0\', port: 2000, timeout: 3600})'],
+      [], ImagePullPolicy.IfNotPresent),
   new ContainerDescription('stencila/base-node', 'stencila/base-node', ['stencila-cmd'], [
     { name: 'STENCILA_AUTH', value: 'false' }
   ], ImagePullPolicy.Always),
@@ -296,7 +297,7 @@ export default class KubernetesCluster {
   /**
    * Start a new session
    */
-  async start (session: SoftwareSession): Promise<string> {
+  async start (session: SoftwareSession, waitForStart: boolean = true): Promise<string> {
     const time = new Date().toISOString().replace(/[-T:.Z]/g, '')
     const rand = crypto.randomBytes(16).toString('hex')
     const podName = `session-${time}-${rand}`
@@ -321,7 +322,7 @@ export default class KubernetesCluster {
       }
     }
 
-    let storageVolume: {[key: string]: any} = {
+    let storageVolume: { [key: string]: any } = {
       name: 'storage-volume'
     }
     if (STORAGE_PVC) {
@@ -400,17 +401,18 @@ export default class KubernetesCluster {
     await this._pods.post({ body: options })
     pino.info({ subject: 'created', pod: podName, port: port })
 
-    // Wait for pod to be ready
-    let attempt = 0
-    while (attempt < 60 * 5) {
-      const response = await this._pods(podName).get()
-      const pod = response.body
-      if (pod.status.phase === 'Running') break
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      attempt += 1
+    if (waitForStart) {
+      // Wait for pod to be ready
+      let attempt = 0
+      while (attempt < 60 * 5) {
+        const response = await this._pods(podName).get()
+        const pod = response.body
+        if (pod.status.phase === 'Running') break
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        attempt += 1
+      }
+      pino.info({ subject: 'started', pod: podName, port: port })
     }
-    pino.info({ subject: 'started', pod: podName, port: port })
-
     return podName
   }
 
