@@ -83,12 +83,21 @@ app.put('/execute', run('execute'))
 app.put('/status', async (req: Request, res: Response) => {
   try {
     res.status(200).json(
-      await cluster.status(req.body.id)
+        await cluster.status(req.body.id)
     )
   } catch (error) {
     res.status(500).send(error.stack)
     logger.error({ msg: error.message, stack: error.stack })
   }
+})
+
+app.get('/system-status/', async (req: Request, res: Response) => {
+  res.status(200).json(
+    {
+      version: process.env.STENCILA_CLOUD_VERSION || '',
+      time: new Date().toISOString()
+    }
+  )
 })
 
 app.listen(2000, () => console.log('Listening on http://127.0.0.1:2000'))
