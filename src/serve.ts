@@ -47,7 +47,7 @@ if (!(process.env.NODE_ENV === 'development' || process.env.JWT_DISABLE === 'tru
       }
       return null
     }
-  }))
+  }).unless({ path: ['/system-status/'] }))
 }
 
 function run (method: string) {
