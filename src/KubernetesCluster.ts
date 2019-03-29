@@ -297,7 +297,7 @@ export default class KubernetesCluster {
   /**
    * Start a new session
    */
-  async start (session: SoftwareSession, waitForStart: boolean = true): Promise<string> {
+  async start (session: SoftwareSession, waitForReady: boolean = true): Promise<string> {
     const time = new Date().toISOString().replace(/[-T:.Z]/g, '')
     const rand = crypto.randomBytes(16).toString('hex')
     const podName = `session-${time}-${rand}`
@@ -401,7 +401,7 @@ export default class KubernetesCluster {
     await this._pods.post({ body: options })
     pino.info({ subject: 'created', pod: podName, port: port })
 
-    if (waitForStart) {
+    if (waitForReady) {
       // Wait for pod to be ready
       let attempt = 0
       while (attempt < 60 * 5) {
