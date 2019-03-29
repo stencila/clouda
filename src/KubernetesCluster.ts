@@ -162,6 +162,7 @@ interface PodAffinityWrapper {
 }
 
 interface PodRequestSpec {
+  nodeSelector: object
   containers: Array<ContainerDefinition>
   volumes?: Array<any>
   restartPolicy: string
@@ -344,6 +345,9 @@ export default class KubernetesCluster {
         }
       },
       spec: {
+        nodeSelector: {
+          nodeType: 'default-session-node'
+        },
         containers: [{
           name: 'stencila-host-container',
 
