@@ -11,6 +11,7 @@ all: setup lint test build docs
 setup:
 	# Install Node.js packages
 	npm install
+	git checkout -- package-lock.json
 
 hooks:
 	# Install pre commit git hooks
