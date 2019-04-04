@@ -52,7 +52,7 @@ docs:
 
 # Deployment/Versioning Things
 
-release: setup build docker-release
+release: setup docker-release
 
 # Exit with status 1 if git has uncommitted changes.
 git-dirty-check:
