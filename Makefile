@@ -59,7 +59,7 @@ git-dirty-check:
 	git diff-index --quiet --cached HEAD -- && git diff-files --quiet --ignore-submodules --
 
 # Build Docker image with current version tag
-director-versioned-build: git-dirty-check Dockerfile
+docker-versioned-build: git-dirty-check Dockerfile
 	docker build . --tag $(DOCKER_IMAGE_NAME):$(CLOUD_VERSION)
 
 # Push versioned Docker image to Docker hub
