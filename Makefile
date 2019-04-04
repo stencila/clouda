@@ -3,6 +3,9 @@
 # Put comment inside recipes so that it is easier
 # for users to understand what is being run and what is failing
 
+CLOUD_VERSION := $(shell ./version-get.sh)
+DOCKER_IMAGE_NAME := stencila/cloud
+
 all: setup lint test build docs
 
 setup:
@@ -27,11 +30,11 @@ cover:
 build:
 	# Build the Javascript distribution and stencila/cloud image
 	npm run build
-	docker build . --tag stencila/cloud
+	docker build . --tag $(DOCKER_IMAGE_NAME)
 
 deploy: build
 	# Deploy the stencila/cloud image
-	docker push stencila/cloud
+	docker push $(DOCKER_IMAGE_NAME)
 
 run-with-minikube:
 	NODE_ENV='development' npm start
@@ -45,3 +48,36 @@ run-inside-minikube:
 docs:
 	npm run docs
 .PHONY: docs
+
+
+# Deployment/Versioning Things
+
+release: setup build docker-release
+
+# Exit with status 1 if git has uncommitted changes.
+git-dirty-check:
+	git diff-index --quiet --cached HEAD -- && git diff-files --quiet --ignore-submodules --
+
+# Build Docker image with current version tag
+director-versioned-build: git-dirty-check Dockerfile
+	docker build . --tag $(DOCKER_IMAGE_NAME):$(CLOUD_VERSION)
+
+# Push versioned Docker image to Docker hub
+docker-release: docker-versioned-build
+	docker push $(DOCKER_IMAGE_NAME):$(CLOUD_VERSION)
+
+# Increment the Major Version of Cloud
+increment-major:
+	./version-increment.sh major
+
+# Increment the Minor Version of Cloud
+increment-minor:
+	./version-increment.sh minor
+
+# Increment the Patch Version of Cloud
+increment-patch:
+	./version-increment.sh patch
+
+# Make annotated tag based on the cloud version
+tag: git-dirty-check
+	git tag -a v$(CLOUD_VERSION) -m "Cloud version $(CLOUD_VERSION)"
