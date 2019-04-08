@@ -94,7 +94,7 @@ app.put('/status', async (req: Request, res: Response) => {
 app.get('/system-status/', async (req: Request, res: Response) => {
   res.status(200).json(
     {
-      version: process.env.npm_package_version,
+      version: process.env.STENCILA_CLOUD_VERSION || '',
       time: new Date().toISOString()
     }
   )
