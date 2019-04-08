@@ -1,6 +1,6 @@
 {
   "name": "stencila-cloud",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "Stencila in the cloud",
   "scripts": {
     "lint": "tslint --project tsconfig.json --fix --format stylish ./src/**/*.ts",
