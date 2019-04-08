@@ -5,6 +5,7 @@
 
 CLOUD_VERSION := $(shell ./version-get.sh)
 DOCKER_IMAGE_NAME := stencila/cloud
+GIT_BRANCH := $(shell git branch | grep \* | cut -d ' ' -f2)
 
 all: setup lint test build docs
 
@@ -57,7 +58,12 @@ release: setup docker-release
 
 # Exit with status 1 if git has uncommitted changes.
 git-dirty-check:
+ifneq ($(GIT_BRANCH),master)
+	@echo "Not on master branch, can't continue."
+	@false
+else
 	git diff-index --quiet --cached HEAD -- && git diff-files --quiet --ignore-submodules --
+endif
 
 # Build Docker image with current version tag
 docker-versioned-build: git-dirty-check Dockerfile
@@ -69,15 +75,15 @@ docker-release: docker-versioned-build
 	docker push $(DOCKER_IMAGE_NAME):$(CLOUD_VERSION)
 
 # Increment the Major Version of Cloud
-increment-major:
+increment-major: git-dirty-check
 	./version-increment.sh major
 
 # Increment the Minor Version of Cloud
-increment-minor:
+increment-minor: git-dirty-check
 	./version-increment.sh minor
 
 # Increment the Patch Version of Cloud
-increment-patch:
+increment-patch: git-dirty-check
 	./version-increment.sh patch
 
 # Make annotated tag based on the cloud version
