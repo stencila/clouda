@@ -61,6 +61,7 @@ git-dirty-check:
 
 # Build Docker image with current version tag
 docker-versioned-build: git-dirty-check Dockerfile
+	npm run build
 	docker build . --tag $(DOCKER_IMAGE_NAME):$(CLOUD_VERSION)
 
 # Push versioned Docker image to Docker hub
