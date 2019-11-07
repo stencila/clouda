@@ -1,11 +1,10 @@
-## `stencila/cloud` : Stencila in the cloud
+# ☁️`stencila/cloud`
 
-[![experimental](https://img.shields.io/badge/stability-experimental-orange.svg)](http://github.com/badges/stability-badges)
-[![Build status](https://travis-ci.org/stencila/cloud.svg?branch=master)](https://travis-ci.org/stencila/cloud)
-[![Community](https://img.shields.io/badge/join-community-green.svg)](https://community.stenci.la)
-[![Chat](https://badges.gitter.im/stencila/stencila.svg)](https://gitter.im/stencila/stencila)
+## ⚠️ Deprecated
 
-## Purpose
+This project is deprecated. Please see ✨ [`stencila/sparkla`](https://github.com/stencila/sparkla) which provides compute session which are faster to start, are more secure, and have finer grained control and real-time user notifications for resource usage. 
+
+## 💭 Purpose
 
 In Stencila, execution `Contexts` are provided by a `Host` (if you are familiar with Jupyter, then Stencila `Contexts` are like Jupyter kernels and a `Host` is like a kernel gateway). In addition to providing `Contexts`, `Hosts` can also provide execution `Environments` (which have one or more `Contexts` with in them e.g. `PythonContext`, `RContext`) plus language specific packages (e.g. `pandas`, `ggplot2`). There is a `Host` HTTP API (currently in draft) available [here](https://stencila.github.io/specs/host.html).
 
@@ -14,11 +13,11 @@ This package, `stencila/cloud`, implements the Stencila `Host` API for running a
 ![](screenshot.png)
 _An example of a document using a `RContext`, hosted within the `stencila/core` execution environment, provided by `stencila/cloud`._
 
-## Install and deploy
+## 📦 Install and deploy
 
 See the [`Dockerfile`](Dockerfile) for building a container and [`deploy.yaml`](deploy.yaml) and [`minikube.yaml`](minikube.yaml) for example Kubernetes deployments.
 
-## Develop
+## 🛠️ Develop
 
 Quickstart:
 
@@ -38,7 +37,7 @@ Check for lint             | `npm run lint`                       | `make lint`
 Run with Minikube          | `NODE_ENV='development' npm start`   | `make run-with-minikube`
 Run inside Minikube        |                                      | `make run-inside-minikube`
 
-### Run with Minikube
+## 🏃 Run with Minikube
 
 You can run the sever locally but get it to create new session pods within an Minikube cluster. 
 
@@ -57,7 +56,7 @@ http PUT :2000/execute environment:='{"id":"alpine"}'
 
 Use `minikube dashboard` or `kubectl get pods` to confirm that the session pods are getting created.
 
-## Run inside Minikube
+## 🏃 Run inside Minikube
 
 You can run the server inside Minikube and create new session pods there too. 
 
