@@ -2,7 +2,7 @@
 
 ## ⚠️ Deprecated
 
-This project is deprecated. Please see ✨ [`stencila/sparkla`](https://github.com/stencila/sparkla) which provides compute session which are faster to start, are more secure, and have finer grained control and real-time user notifications for resource usage. 
+This project is deprecated. Please see ✨ [`stencila/sparkla`](https://github.com/stencila/sparkla) which provides compute sessions that are faster to start, more secure, and have finer grained control, and real-time user notifications, for resource usage. 
 
 ## 💭 Purpose
 
