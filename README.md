@@ -1,4 +1,4 @@
-# ☁️`stencila/cloud`
+# ☁️ Cloud
 
 ## ⚠️ Deprecated
 
